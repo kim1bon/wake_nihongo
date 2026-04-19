@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../data/alarm_playback_session.dart';
+import '../data/alarm_preview_audio_native.dart';
 
 /// Bottom sheet: tap a row to preview that tone in a loop; tap **완료** to confirm.
 class AlarmSoundPickerSheet extends StatefulWidget {
@@ -32,13 +33,40 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
   Future<void> _playLoop(String soundId) async {
     final id = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     try {
-      await activateAlarmInAppAudioSession();
       await _player.stop();
-      await _player.setReleaseMode(ReleaseMode.loop);
-      await _player.play(
-        AssetSource(AlarmSoundIds.assetSourcePath(id)),
-        ctx: alarmInAppAudioContext,
-      );
+      try {
+        await deactivateAlarmInAppAudioSession();
+      } catch (_) {}
+
+      final policy = await AlarmPreviewAudioNative.getSoundPreviewPolicy();
+      if (policy.blockPreviewPlayback) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '무음·진동 모드에서는 이어폰(유선·블루투스)을 연결했을 때만 미리듣기됩니다.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (policy.ringerHushed && policy.headsetConnected) {
+        await activateAlarmPreviewMediaAudioSession();
+        await _player.setReleaseMode(ReleaseMode.loop);
+        await _player.play(
+          AssetSource(AlarmSoundIds.assetSourcePath(id)),
+          ctx: alarmPreviewMediaInAppAudioContext,
+        );
+      } else {
+        await activateAlarmInAppAudioSession();
+        await _player.setReleaseMode(ReleaseMode.loop);
+        await _player.play(
+          AssetSource(AlarmSoundIds.assetSourcePath(id)),
+          ctx: alarmInAppAudioContext,
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -89,7 +117,8 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              '항목을 누르면 선택한 알람음이 반복 재생됩니다.',
+              '항목을 누르면 선택한 알람음이 반복 재생됩니다.\n'
+              '무음·진동 모드에서는 이어폰(유선·블루투스)을 연결했을 때만 미리듣기됩니다.',
               style: TextStyle(fontSize: 12),
             ),
           ),

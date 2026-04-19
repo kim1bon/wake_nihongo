@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/constants/alarm_weekdays.dart';
+import '../../quiz/presentation/quiz_practice_screen.dart';
 import '../domain/alarm.dart';
 import 'add_alarm_screen.dart';
 import 'alarm_providers.dart';
@@ -28,7 +29,22 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
     final alarmsAsync = ref.watch(alarmsNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('WakeNihongo')),
+      appBar: AppBar(
+        title: const Text('WakeNihongo'),
+        actions: [
+          IconButton(
+            tooltip: '일본어 퀴즈',
+            onPressed: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const QuizPracticeScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.quiz_outlined),
+          ),
+        ],
+      ),
       body: alarmsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('불러오기 실패: $e')),

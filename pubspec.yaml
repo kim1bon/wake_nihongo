@@ -48,6 +48,9 @@ dependencies:
   # Preview alarm tones from Flutter assets (loop in picker)
   audioplayers: ^6.1.0
   audio_session: ^0.2.3
+  http: ^1.2.2
+  csv: ^6.0.0
+  shared_preferences: ^2.3.3
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +62,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -73,6 +77,8 @@ flutter:
 
   assets:
     - assets/sounds/
+    - assets/images/
+    - assets/questions/wake_nihongo_sample.csv
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -99,3 +105,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# dart run flutter_launcher_icons  로 재생성
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/Tx_AppIcon.png
+  adaptive_icon_background: "#5CB4F3"
+  adaptive_icon_foreground: assets/images/Tx_AppIcon.png

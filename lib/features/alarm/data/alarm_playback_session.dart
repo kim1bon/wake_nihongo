@@ -18,6 +18,20 @@ final AudioContext alarmInAppAudioContext = AudioContext(
   ),
 );
 
+/// 무음·진동 모드에서 이어폰 연결 시 미리듣기용 — 알람 스트림이 아닌 미디어 스트림으로 라우팅해 스피커 강제 출력을 피함.
+final AudioContext alarmPreviewMediaInAppAudioContext = AudioContext(
+  android: const AudioContextAndroid(
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.media,
+    audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+    audioMode: AndroidAudioMode.normal,
+  ),
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.playback,
+    options: {AVAudioSessionOptions.duckOthers},
+  ),
+);
+
 Future<void> activateAlarmInAppAudioSession() async {
   final session = await audio_sess.AudioSession.instance;
   await session.configure(
@@ -42,4 +56,25 @@ Future<void> activateAlarmInAppAudioSession() async {
 Future<void> deactivateAlarmInAppAudioSession() async {
   final session = await audio_sess.AudioSession.instance;
   await session.setActive(false);
+}
+
+Future<void> activateAlarmPreviewMediaAudioSession() async {
+  final session = await audio_sess.AudioSession.instance;
+  await session.configure(
+    const audio_sess.AudioSessionConfiguration(
+      avAudioSessionCategory: audio_sess.AVAudioSessionCategory.playback,
+      avAudioSessionCategoryOptions:
+          audio_sess.AVAudioSessionCategoryOptions.duckOthers,
+      avAudioSessionMode: audio_sess.AVAudioSessionMode.defaultMode,
+      androidAudioAttributes: audio_sess.AndroidAudioAttributes(
+        contentType: audio_sess.AndroidAudioContentType.music,
+        usage: audio_sess.AndroidAudioUsage.media,
+        flags: audio_sess.AndroidAudioFlags.none,
+      ),
+      androidAudioFocusGainType:
+          audio_sess.AndroidAudioFocusGainType.gainTransientMayDuck,
+      androidWillPauseWhenDucked: false,
+    ),
+  );
+  await session.setActive(true);
 }

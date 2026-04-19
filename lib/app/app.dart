@@ -10,7 +10,7 @@ import '../core/constants/alarm_sound_ids.dart';
 import '../features/alarm/data/alarm_native_android.dart';
 import 'alarm_ring_coordinator.dart';
 import 'pending_alarm_launch.dart';
-import '../features/alarm/presentation/alarm_list_screen.dart';
+import 'main_tabs_screen.dart';
 
 class WakeNihongoApp extends StatefulWidget {
   const WakeNihongoApp({super.key});
@@ -66,7 +66,7 @@ class _WakeNihongoAppState extends State<WakeNihongoApp> {
         Locale('ko', 'KR'),
         Locale('en', 'US'),
       ],
-      home: const AlarmListScreen(),
+      home: const MainTabsScreen(),
     );
   }
 }
