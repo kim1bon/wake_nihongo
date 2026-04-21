@@ -13,9 +13,16 @@ class QuizRemoteDataSource {
   final http.Client? _client;
 
   Future<List<QuizEntry>> fetchEntries({Uri? uri}) async {
-    final u = uri ?? QuizSheetConfig.exportCsvUri;
+    final text = await fetchRawCsv(uri: uri);
+    return parseQuizSheetCsv(text);
+  }
+
+  Future<String> fetchRawCsv({Uri? uri}) async {
+    final u = uri ?? QuizSheetConfig.quizExportCsvUri;
     final c = _client;
-    final response = c != null ? await c.get(u) : await http.get(u);
+    final response = await (c != null ? c.get(u) : http.get(u)).timeout(
+      const Duration(seconds: 6),
+    );
     // 구글 시트 CSV는 UTF-8인데 Content-Type에 charset이 없으면 package:http 가 latin1으로
     // 디코딩해 한국어·일본어가 깨질 수 있음 → bodyBytes 를 항상 UTF-8로 디코딩.
     final text = utf8.decode(response.bodyBytes);
@@ -25,7 +32,7 @@ class QuizRemoteDataSource {
         bodyPreview: text.length > 200 ? '${text.substring(0, 200)}…' : text,
       );
     }
-    return parseQuizSheetCsv(text);
+    return text;
   }
 
   void dispose() {

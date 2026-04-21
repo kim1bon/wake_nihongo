@@ -8,7 +8,6 @@ import '../../quiz/domain/jp_to_kor_question.dart';
 import '../../quiz/domain/quiz_generator.dart';
 import '../../quiz/presentation/quiz_challenge_body.dart';
 import '../../quiz/presentation/quiz_providers.dart';
-import '../../settings/presentation/quiz_alarm_types_notifier.dart';
 
 /// 알림(전체 화면 인텐트 포함)으로 앱이 열렸을 때 표시하는 전용 화면. 뒤로 가기로는 닫히지 않습니다.
 /// 시트에서 문제를 불러 정답을 맞춘 뒤에만 알람을 끌 수 있습니다. (불러오기 실패·출제 불가 시 건너뛰기 가능)
@@ -58,10 +57,8 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
       _correctPickIndex = null;
     });
     try {
-      final entries = await ref.read(quizEntriesProvider.future);
-      final enabledTypes = await ref.read(quizAlarmEnabledTypesProvider.future);
+      final filtered = await ref.read(quizFilteredEntriesProvider.future);
       if (!mounted) return;
-      final filtered = QuizGenerator.filterByEnabledTypes(entries, enabledTypes);
       final q = QuizGenerator.generate(filtered, random: _random);
       setState(() {
         _loadingQuiz = false;

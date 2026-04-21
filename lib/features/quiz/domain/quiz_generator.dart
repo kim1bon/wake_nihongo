@@ -21,6 +21,17 @@ class QuizGenerator {
     return entries.where((e) => enabledTypes.contains(e.type.trim())).toList();
   }
 
+  /// 알람 설정에서 선택한 `category`만 남깁니다. [enabledCategories]가 비어 있으면 필터 없음(전체).
+  static List<QuizEntry> filterByEnabledCategories(
+    List<QuizEntry> entries,
+    Set<String> enabledCategories,
+  ) {
+    if (enabledCategories.isEmpty) return entries;
+    return entries
+        .where((e) => enabledCategories.contains(e.category.trim()))
+        .toList();
+  }
+
   /// 출제 가능한 그룹이 없거나 무작위 실패 시 `null`.
   static JpToKorQuestion? generate(
     List<QuizEntry> entries, {

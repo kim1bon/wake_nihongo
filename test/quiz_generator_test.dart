@@ -28,6 +28,18 @@ void main() {
       }
     });
 
+    test('filterByEnabledCategories로 category만 걸러낸다', () {
+      final entries = [
+        const QuizEntry(id: '0', category: '여행', type: '단어', jp: 'a', kor: '1'),
+        const QuizEntry(id: '1', category: '식당', type: '단어', jp: 'b', kor: '2'),
+      ];
+      final onlyTravel = QuizGenerator.filterByEnabledCategories(entries, {'여행'});
+      expect(onlyTravel.length, 1);
+      expect(onlyTravel.single.category, '여행');
+      final all = QuizGenerator.filterByEnabledCategories(entries, {});
+      expect(all.length, 2);
+    });
+
     test('filterByEnabledTypes로 type만 걸러낸다', () {
       final entries = [
         const QuizEntry(id: '0', category: 'C', type: '단어', jp: 'a', kor: '1'),

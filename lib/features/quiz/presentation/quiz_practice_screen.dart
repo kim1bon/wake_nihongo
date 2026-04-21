@@ -15,7 +15,7 @@ class QuizPracticeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncEntries = ref.watch(quizEntriesProvider);
+    final asyncEntries = ref.watch(quizFilteredEntriesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('일본어 퀴즈')),

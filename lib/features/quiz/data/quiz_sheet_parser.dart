@@ -15,7 +15,11 @@ List<QuizEntry> parseQuizSheetCsv(String raw) {
 
   final header = rows.first.map((c) => '$c'.trim().toLowerCase()).toList();
   final idIdx = header.indexOf('id');
-  final catIdx = header.indexOf('category');
+  var catIdx = header.indexOf('category');
+  // 시트 오탈자(catergory)도 허용해 원격 데이터 변경에 안전하게 대응.
+  if (catIdx < 0) {
+    catIdx = header.indexOf('catergory');
+  }
   final typeIdx = header.indexOf('type');
   final jpIdx = header.indexOf('jp');
   final korIdx = header.indexOf('kor');
