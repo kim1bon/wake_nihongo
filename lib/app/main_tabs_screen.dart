@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../features/alarm/presentation/alarm_list_screen.dart';
+import '../features/learning/presentation/learning_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 
-/// 하단 탭: 알람(기존 메인) · 설정.
+/// 하단 탭: 학습 · 알람(기본) · 설정.
 class MainTabsScreen extends StatefulWidget {
   const MainTabsScreen({super.key});
 
@@ -12,7 +13,7 @@ class MainTabsScreen extends StatefulWidget {
 }
 
 class _MainTabsScreenState extends State<MainTabsScreen> {
-  int _index = 0;
+  int _index = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +21,7 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
       body: IndexedStack(
         index: _index,
         children: const [
+          LearningScreen(),
           AlarmListScreen(),
           SettingsScreen(),
         ],
@@ -28,6 +30,11 @@ class _MainTabsScreenState extends State<MainTabsScreen> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: '학습',
+          ),
           NavigationDestination(
             icon: Icon(Icons.alarm_outlined),
             selectedIcon: Icon(Icons.alarm),
