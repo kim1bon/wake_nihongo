@@ -10,10 +10,12 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var nativeChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NATIVE_CHANNEL).setMethodCallHandler { call, result ->
+        nativeChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, NATIVE_CHANNEL)
+        nativeChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "syncAlarms" -> {
                     val json = call.arguments as String
@@ -54,6 +56,15 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_FROM_ALARM_SERVICE, false)) {
+            val payload = mapOf(
+                "soundId" to (intent.getStringExtra(EXTRA_SOUND_ID) ?: "Alram_01"),
+                "alarmId" to intent.getIntExtra(EXTRA_ALARM_ID, -1),
+            )
+            nativeChannel?.invokeMethod(METHOD_ON_ALARM_LAUNCH_INTENT, payload)
+            // 동일 Intent 재사용 시 Dart 중복 진입 방지
+            intent.removeExtra(EXTRA_FROM_ALARM_SERVICE)
+        }
     }
 
     companion object {
@@ -89,6 +100,7 @@ class MainActivity : FlutterActivity() {
         const val EXTRA_FROM_ALARM_SERVICE = "from_alarm_service"
         const val EXTRA_SOUND_ID = "flutter_sound_id"
         const val EXTRA_ALARM_ID = "alarm_id"
+        const val METHOD_ON_ALARM_LAUNCH_INTENT = "onAlarmLaunchIntent"
         private const val NATIVE_CHANNEL = "com.example.wake_nihongo/alarm_native"
     }
 }

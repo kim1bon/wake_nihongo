@@ -26,6 +26,8 @@ class AlarmRingCoordinator {
   static Future<void> handleAlarmTrigger({
     required String soundId,
   }) async {
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
     if (_handling) return;
     _handling = true;
     try {
@@ -33,9 +35,6 @@ class AlarmRingCoordinator {
         await AlarmNativeAndroid.stopRinging();
       }
       await AlarmServices.ringtonePlayer.startLoop(soundId);
-
-      final nav = navigatorKey.currentState;
-      if (nav == null) return;
 
       await nav.push<void>(
         MaterialPageRoute<void>(
@@ -52,6 +51,22 @@ class AlarmRingCoordinator {
       );
     } finally {
       _handling = false;
+    }
+  }
+
+  static Future<void> handleAlarmTriggerWhenNavigatorReady({
+    required String soundId,
+    int maxRetry = 6,
+    Duration retryInterval = const Duration(milliseconds: 160),
+  }) async {
+    for (var i = 0; i <= maxRetry; i++) {
+      if (navigatorKey.currentState != null) {
+        await handleAlarmTrigger(soundId: soundId);
+        return;
+      }
+      if (i < maxRetry) {
+        await Future<void>.delayed(retryInterval);
+      }
     }
   }
 

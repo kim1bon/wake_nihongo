@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,11 +26,55 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
   final _quizRepository = QuizRepository();
   Timer? _iosForegroundAlarmTimer;
   final Map<String, DateTime> _iosForegroundFiredAt = <String, DateTime>{};
+  final Map<String, DateTime> _androidForegroundFiredAt = <String, DateTime>{};
+
+  String _buildAndroidFireKey({
+    required String soundId,
+    required int alarmId,
+    required DateTime now,
+  }) {
+    final minutePrefix =
+        '${now.year}-${now.month}-${now.day}-${now.hour}-${now.minute}';
+    return '$minutePrefix-$alarmId-$soundId';
+  }
+
+  Future<void> _handleAndroidAlarmLaunchPayload(Map<String, dynamic> map) async {
+    final sid = map['soundId'] as String?;
+    if (!AlarmSoundIds.isValid(sid)) return;
+    final aid = map['alarmId'];
+    final alarmId = aid is int ? aid : int.tryParse('$aid') ?? -1;
+    final now = DateTime.now();
+    final fireKey = _buildAndroidFireKey(
+      soundId: sid!,
+      alarmId: alarmId,
+      now: now,
+    );
+    if (_androidForegroundFiredAt.containsKey(fireKey)) return;
+    _androidForegroundFiredAt[fireKey] = now;
+
+    await AlarmRingCoordinator.handleAlarmTriggerWhenNavigatorReady(
+      soundId: sid,
+      maxRetry: 8,
+      retryInterval: const Duration(milliseconds: 140),
+    );
+
+    final cutoff = now.subtract(const Duration(hours: 2));
+    _androidForegroundFiredAt.removeWhere(
+      (_, firedAt) => firedAt.isBefore(cutoff),
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (Platform.isAndroid) {
+      unawaited(
+        AlarmNativeAndroid.bindAlarmLaunchIntentListener((payload) async {
+          await _handleAndroidAlarmLaunchPayload(payload);
+        }),
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_syncQuizOnLaunch());
     });
@@ -45,21 +87,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       if (Platform.isAndroid) {
         final map = await AlarmNativeAndroid.takePendingAlarmLaunch();
         if (map != null) {
-          final sid = map['soundId'] as String?;
-          if (AlarmSoundIds.isValid(sid)) {
-            final aid = map['alarmId'];
-            unawaited(
-              AlarmRingCoordinator.handleNotificationResponse(
-                NotificationResponse(
-                  notificationResponseType: NotificationResponseType.selectedNotification,
-                  payload: jsonEncode({
-                    'soundId': sid,
-                    'alarmId': aid is int ? aid : int.tryParse('$aid') ?? -1,
-                  }),
-                ),
-              ),
-            );
-          }
+          unawaited(_handleAndroidAlarmLaunchPayload(map));
         }
       }
     });

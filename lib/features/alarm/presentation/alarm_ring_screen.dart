@@ -87,71 +87,117 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: theme.colorScheme.surface,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 16),
-                Icon(
-                  Icons.alarm,
-                  size: 56,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '알람',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _mustSolveQuiz && !_quizSolved
-                      ? '일본어의 뜻을 고른 뒤 알람을 끌 수 있습니다.'
-                      : '알람음은 끄기 전까지 반복됩니다.',
-                  style: theme.textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Expanded(child: _buildQuizSection(theme)),
-                const SizedBox(height: 12),
-                if (_loadError != null) ...[
-                  TextButton(
-                    onPressed: () {
-                      ref.invalidate(quizEntriesProvider);
-                      _loadQuiz();
-                    },
-                    child: const Text('문제 다시 불러오기'),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                  ),
-                  onPressed: _canDismiss ? _onDismissPressed : null,
-                  child: Text(
-                    _canDismiss ? '알람 끄기' : '정답 후 알람 끄기',
-                  ),
-                ),
-                if (!_canDismiss && _mustSolveQuiz)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      '정답을 선택하면 버튼이 활성화됩니다.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-              ],
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/Tx_Background.png',
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.22),
+                      Colors.black.withValues(alpha: 0.42),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.alarm,
+                            size: 24,
+                            color: Colors.white.withValues(alpha: 0.95),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _mustSolveQuiz && !_quizSolved
+                                ? '정답을 맞히면 알람을 끌 수 있어요'
+                                : '알람을 종료할 수 있어요',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Expanded(child: _buildQuizSection(theme)),
+                    const SizedBox(height: 12),
+                    if (_loadError != null) ...[
+                      TextButton(
+                        onPressed: () {
+                          ref.invalidate(quizEntriesProvider);
+                          _loadQuiz();
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('문제 다시 불러오기'),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: theme.colorScheme.onSurface,
+                        disabledBackgroundColor:
+                            Colors.white.withValues(alpha: 0.55),
+                        disabledForegroundColor:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: _canDismiss ? _onDismissPressed : null,
+                      child: Text(
+                        _canDismiss ? '알람 끄기' : '정답 후 알람 끄기',
+                      ),
+                    ),
+                    if (!_canDismiss && _mustSolveQuiz)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '정답을 선택하면 버튼이 활성화됩니다.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.86),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -205,52 +251,68 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
 
     if (_quizSolved) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.check_circle, size: 64, color: theme.colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              '정답입니다!',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.35),
             ),
-          ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                size: 70,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                '정답입니다!',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return SingleChildScrollView(
-      child: QuizChallengeBody(
-        question: q,
-        feedbackWrong: _wrong,
-        wrongPickIndex: _wrongPickIndex,
-        correctHighlightIndex: _correctPickIndex,
-        onPickIndex: (i) {
-          if (i == q.correctChoiceIndex) {
-            setState(() {
-              _wrong = false;
-              _wrongPickIndex = null;
-              _correctPickIndex = q.correctChoiceIndex;
-            });
-            unawaited(
-              Future<void>.delayed(const Duration(milliseconds: 650), () {
-                if (!mounted) return;
-                setState(() {
-                  _quizSolved = true;
-                  _correctPickIndex = null;
-                });
-              }),
-            );
-          } else {
-            setState(() {
-              _wrong = true;
-              _wrongPickIndex = i;
-            });
-          }
-        },
-      ),
+    return QuizChallengeBody(
+      question: q,
+      useAlarmStyleLayout: true,
+      thumbnailAssetPath: 'assets/images/Tx_Thumbnail.png',
+      feedbackWrong: _wrong,
+      wrongPickIndex: _wrongPickIndex,
+      correctHighlightIndex: _correctPickIndex,
+      onPickIndex: (i) {
+        if (i == q.correctChoiceIndex) {
+          setState(() {
+            _wrong = false;
+            _wrongPickIndex = null;
+            _correctPickIndex = q.correctChoiceIndex;
+          });
+          unawaited(
+            Future<void>.delayed(const Duration(milliseconds: 650), () {
+              if (!mounted) return;
+              setState(() {
+                _quizSolved = true;
+                _correctPickIndex = null;
+              });
+            }),
+          );
+        } else {
+          setState(() {
+            _wrong = true;
+            _wrongPickIndex = i;
+          });
+        }
+      },
     );
   }
 }

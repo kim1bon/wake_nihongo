@@ -23,6 +23,15 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
             soundId,
             raw,
         )
+        val openQuizIntent = Intent(context.applicationContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(MainActivity.EXTRA_FROM_ALARM_SERVICE, true)
+            putExtra(MainActivity.EXTRA_SOUND_ID, soundId)
+            putExtra(MainActivity.EXTRA_ALARM_ID, alarmId)
+        }
+        context.applicationContext.startActivity(openQuizIntent)
 
         AndroidAlarmScheduler.scheduleNextWeekSameSlot(
             context.applicationContext,

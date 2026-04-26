@@ -11,6 +11,7 @@ class AlarmNativeAndroid {
   AlarmNativeAndroid._();
 
   static const _ch = MethodChannel('com.example.wake_nihongo/alarm_native');
+  static const _methodOnAlarmLaunchIntent = 'onAlarmLaunchIntent';
 
   static Future<void> syncAlarms(List<Alarm> alarms) async {
     if (!Platform.isAndroid) return;
@@ -38,5 +39,21 @@ class AlarmNativeAndroid {
     final m = await _ch.invokeMethod<Map<dynamic, dynamic>?>('takePendingAlarmLaunch');
     if (m == null) return null;
     return m.map((k, v) => MapEntry(k as String, v));
+  }
+
+  /// MainActivity.onNewIntent(알람 포그라운드 서비스 인텐트) 이벤트를 즉시 수신합니다.
+  static Future<void> bindAlarmLaunchIntentListener(
+    Future<void> Function(Map<String, dynamic> payload) onLaunch,
+  ) async {
+    if (!Platform.isAndroid) return;
+    _ch.setMethodCallHandler((call) async {
+      if (call.method != _methodOnAlarmLaunchIntent) return;
+      final args = call.arguments;
+      if (args is! Map) return;
+      final payload = args.map(
+        (k, v) => MapEntry(k.toString(), v),
+      );
+      await onLaunch(payload);
+    });
   }
 }
