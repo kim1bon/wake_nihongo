@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -13,8 +14,11 @@ class AlarmNotificationScheduler {
   final FlutterLocalNotificationsPlugin _plugin;
 
   static const _channelDescription = 'WakeNihongo 알람 (알람 볼륨)';
+  static const _iosRepeatSlots = 5;
 
   static int notificationId(int alarmId, int weekday) => alarmId * 10 + weekday;
+  static int _iosSlotNotificationId(int alarmId, int weekday, int slot) =>
+      alarmId * 100 + (weekday * 10) + slot;
 
   String _androidChannelId(String soundId) =>
       'wake_nihongo_${AlarmSoundIds.channelSuffix(soundId)}';
@@ -68,6 +72,9 @@ class AlarmNotificationScheduler {
   Future<void> cancelAllSlotsForAlarmId(int alarmId) async {
     for (var weekday = 1; weekday <= 7; weekday++) {
       await _plugin.cancel(notificationId(alarmId, weekday));
+      for (var slot = 0; slot < _iosRepeatSlots; slot++) {
+        await _plugin.cancel(_iosSlotNotificationId(alarmId, weekday, slot));
+      }
     }
   }
 
@@ -103,7 +110,9 @@ class AlarmNotificationScheduler {
       presentBanner: true,
       presentList: true,
       sound: AlarmSoundIds.iosFileName(soundId),
-      interruptionLevel: InterruptionLevel.timeSensitive,
+      // Capability/OS 상태에 따라 timeSensitive 전달이 무시/제약될 수 있어
+      // 기본 레벨(active)로 예약해 iOS 기본 알림 전달 안정성을 우선합니다.
+      interruptionLevel: InterruptionLevel.active,
     );
     final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
@@ -113,18 +122,36 @@ class AlarmNotificationScheduler {
     });
 
     for (final weekday in alarm.weekdays) {
-      final when = _nextInstanceOfWeekday(weekday, alarm.hour, alarm.minute);
-      await _plugin.zonedSchedule(
-        notificationId(alarm.id, weekday),
-        'WakeNihongo',
-        '알람 시간입니다. 앱을 열어 알람을 끄세요.',
-        when,
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        payload: payload,
-      );
+      final firstWhen = _nextInstanceOfWeekday(weekday, alarm.hour, alarm.minute);
+      if (Platform.isIOS) {
+        // iOS는 Android처럼 OS 레벨 무한 루프 재생이 어려워, 같은 요일에 1분 간격 슬롯을 여러 개 예약합니다.
+        for (var slot = 0; slot < _iosRepeatSlots; slot++) {
+          final when = firstWhen.add(Duration(minutes: slot));
+          await _plugin.zonedSchedule(
+            _iosSlotNotificationId(alarm.id, weekday, slot),
+            'WakeNihongo',
+            '알람 시간입니다. 앱을 열어 알람을 끄세요.',
+            when,
+            details,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            payload: payload,
+          );
+        }
+      } else {
+        await _plugin.zonedSchedule(
+          notificationId(alarm.id, weekday),
+          'WakeNihongo',
+          '알람 시간입니다. 앱을 열어 알람을 끄세요.',
+          firstWhen,
+          details,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+          payload: payload,
+        );
+      }
     }
   }
 

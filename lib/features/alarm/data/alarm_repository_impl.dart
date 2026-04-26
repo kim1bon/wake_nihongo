@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../domain/alarm.dart';
 import '../domain/alarm_repository.dart';
@@ -11,6 +13,11 @@ class AlarmRepositoryImpl implements AlarmRepository {
   final AlarmLocalDataSource _dataSource;
   final AlarmNotificationScheduler _scheduler;
 
+  Future<void> _ensureIosNotificationPermissions() async {
+    if (!Platform.isIOS) return;
+    await _scheduler.ensurePermissions();
+  }
+
   @override
   Future<List<Alarm>> getAlarms() => _dataSource.getAll();
 
@@ -21,6 +28,7 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required Set<int> weekdays,
     required String soundId,
   }) async {
+    await _ensureIosNotificationPermissions();
     final resolvedSoundId = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     final alarm = await _dataSource.insertAlarm(
       hour: hour,
@@ -42,6 +50,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
 
   @override
   Future<void> setAlarmEnabled(int id, bool enabled) async {
+    if (enabled) {
+      await _ensureIosNotificationPermissions();
+    }
     await _dataSource.setAlarmEnabled(id, enabled);
     final alarm = await _dataSource.getById(id);
     if (alarm == null) return;
@@ -60,6 +71,7 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required Set<int> weekdays,
     required String soundId,
   }) async {
+    await _ensureIosNotificationPermissions();
     final existing = await _dataSource.getById(id);
     if (existing == null) {
       throw StateError('Alarm not found: $id');

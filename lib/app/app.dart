@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/alarm_sound_ids.dart';
 import '../features/alarm/data/alarm_native_android.dart';
+import '../features/alarm/presentation/alarm_providers.dart';
 import '../features/quiz/data/quiz_repository.dart';
 import '../features/quiz/presentation/quiz_providers.dart';
 import 'alarm_ring_coordinator.dart';
@@ -22,12 +23,16 @@ class WakeNihongoApp extends ConsumerStatefulWidget {
   ConsumerState<WakeNihongoApp> createState() => _WakeNihongoAppState();
 }
 
-class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp> {
+class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
+    with WidgetsBindingObserver {
   final _quizRepository = QuizRepository();
+  Timer? _iosForegroundAlarmTimer;
+  final Map<String, DateTime> _iosForegroundFiredAt = <String, DateTime>{};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_syncQuizOnLaunch());
     });
@@ -58,6 +63,68 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp> {
         }
       }
     });
+    if (Platform.isIOS) {
+      _startIosForegroundAlarmWatcher();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopIosForegroundAlarmWatcher();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!Platform.isIOS) return;
+    if (state == AppLifecycleState.resumed) {
+      _startIosForegroundAlarmWatcher();
+    } else {
+      _stopIosForegroundAlarmWatcher();
+    }
+  }
+
+  void _startIosForegroundAlarmWatcher() {
+    _iosForegroundAlarmTimer ??= Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_checkAndFireIosForegroundAlarms()),
+    );
+    unawaited(_checkAndFireIosForegroundAlarms());
+  }
+
+  void _stopIosForegroundAlarmWatcher() {
+    _iosForegroundAlarmTimer?.cancel();
+    _iosForegroundAlarmTimer = null;
+  }
+
+  Future<void> _checkAndFireIosForegroundAlarms() async {
+    if (!mounted || !Platform.isIOS) return;
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+
+    final alarms = await ref.read(alarmRepositoryProvider).getAlarms();
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    final minuteKeyPrefix =
+        '${now.year}-${now.month}-${now.day}-${now.hour}-${now.minute}';
+
+    for (final alarm in alarms) {
+      if (!alarm.enabled) continue;
+      if (!alarm.weekdays.contains(now.weekday)) continue;
+      if (alarm.hour != now.hour || alarm.minute != now.minute) continue;
+
+      final fireKey = '$minuteKeyPrefix-${alarm.id}';
+      if (_iosForegroundFiredAt.containsKey(fireKey)) continue;
+
+      _iosForegroundFiredAt[fireKey] = now;
+      unawaited(AlarmRingCoordinator.handleAlarmTrigger(soundId: alarm.soundId));
+    }
+
+    final cutoff = now.subtract(const Duration(hours: 2));
+    _iosForegroundFiredAt.removeWhere((_, firedAt) => firedAt.isBefore(cutoff));
   }
 
   Future<void> _syncQuizOnLaunch() async {
