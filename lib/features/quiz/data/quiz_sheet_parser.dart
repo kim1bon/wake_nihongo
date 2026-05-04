@@ -2,26 +2,47 @@ import 'package:csv/csv.dart';
 
 import '../domain/quiz_entry.dart';
 
-/// 첫 행 헤더: id, category, type, jp, kor (대소문자 무시, 공백 트림).
+bool parseSheetBool(String raw) {
+  final s = raw.trim().toLowerCase();
+  return s == 'true' ||
+      s == '1' ||
+      s == 'yes' ||
+      s == 'y' ||
+      s == '✓' ||
+      s == 'v';
+}
+
+String _cell(List<dynamic> row, int idx) {
+  if (idx < 0 || idx >= row.length) return '';
+  return '${row[idx]}'.trim();
+}
+
+/// 첫 행 헤더: id, category, type, jp, kor 필수.
+/// 선택: level, hiragana, kor_pronunciation, hiragana_display (대소문자 무시, 공백 트림).
 List<QuizEntry> parseQuizSheetCsv(String raw) {
   var text = raw;
   if (text.startsWith('\ufeff')) {
     text = text.substring(1);
   }
   text = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-  // 기본 CsvToListConverter는 eol이 \r\n 일 때만 행으로 나누므로, \n 기준으로 통일한다.
   final rows = const CsvToListConverter(eol: '\n').convert(text);
   if (rows.isEmpty) return [];
 
   final header = rows.first.map((c) => '$c'.trim().toLowerCase()).toList();
   final idIdx = header.indexOf('id');
   var catIdx = header.indexOf('category');
-  // 시트 오탈자(catergory)도 허용해 원격 데이터 변경에 안전하게 대응.
   if (catIdx < 0) {
     catIdx = header.indexOf('catergory');
   }
+  final levelIdx = header.indexOf('level');
   final typeIdx = header.indexOf('type');
   final jpIdx = header.indexOf('jp');
+  final hiraganaIdx = header.indexOf('hiragana');
+  var korPronIdx = header.indexOf('kor_pronunciation');
+  if (korPronIdx < 0) {
+    korPronIdx = header.indexOf('kor pronunciation');
+  }
+  final hiraganaDisplayIdx = header.indexOf('hiragana_display');
   final korIdx = header.indexOf('kor');
   if (idIdx < 0 || catIdx < 0 || typeIdx < 0 || jpIdx < 0 || korIdx < 0) {
     throw FormatException(
@@ -33,17 +54,25 @@ List<QuizEntry> parseQuizSheetCsv(String raw) {
   for (var i = 1; i < rows.length; i++) {
     final row = rows[i];
     if (row.length <= jpIdx) continue;
-    final id = '${row[idIdx]}'.trim();
-    final jp = '${row[jpIdx]}'.trim();
+    final id = _cell(row, idIdx);
+    final jp = _cell(row, jpIdx);
     if (id.isEmpty && jp.isEmpty) continue;
+
+    final hiraganaRaw = hiraganaIdx >= 0 ? _cell(row, hiraganaIdx) : '';
+    final displayRaw =
+        hiraganaDisplayIdx >= 0 ? _cell(row, hiraganaDisplayIdx) : '';
 
     out.add(
       QuizEntry(
         id: id.isEmpty ? '$i' : id,
-        category: '${row[catIdx]}'.trim(),
-        type: '${row[typeIdx]}'.trim(),
+        category: _cell(row, catIdx),
+        level: levelIdx >= 0 ? _cell(row, levelIdx) : '',
+        type: _cell(row, typeIdx),
         jp: jp,
-        kor: '${row[korIdx]}'.trim(),
+        hiragana: hiraganaRaw,
+        kor: _cell(row, korIdx),
+        korPronunciation: korPronIdx >= 0 ? _cell(row, korPronIdx) : '',
+        hiraganaDisplay: displayRaw.isEmpty ? false : parseSheetBool(displayRaw),
       ),
     );
   }

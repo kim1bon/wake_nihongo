@@ -2,7 +2,12 @@
 abstract final class QuizSheetConfig {
   static const String spreadsheetId = '13vaIALwMHGeHVKSlAwgxUKRlkF3pri96k4eQZQLKKVE';
   static const String versionSheetGid = '0';
-  static const String quizSheetGid = '434121783';
+
+  /// 사용 유무(인덱스) 탭 — `id`, `use_display`, `content_name`, `url`.
+  static const String quizIndexSheetGid = '793932036';
+
+  /// 인덱스·URL 동기화 실패 시 단일 탭 폴백.
+  static const String legacyQuizSheetGid = '1842058493';
 
   /// `format=csv` + `gid` 로 해당 탭만 가져옵니다.
   static Uri exportCsvUriForGid(String gid) => Uri.parse(
@@ -10,5 +15,6 @@ abstract final class QuizSheetConfig {
       );
 
   static Uri get versionExportCsvUri => exportCsvUriForGid(versionSheetGid);
-  static Uri get quizExportCsvUri => exportCsvUriForGid(quizSheetGid);
+  static Uri get quizIndexExportCsvUri => exportCsvUriForGid(quizIndexSheetGid);
+  static Uri get legacyQuizExportCsvUri => exportCsvUriForGid(legacyQuizSheetGid);
 }

@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/alarm_sound_ids.dart';
+import '../core/theme/theme.dart';
 import '../features/alarm/data/alarm_native_android.dart';
 import '../features/alarm/presentation/alarm_providers.dart';
 import '../features/quiz/data/quiz_repository.dart';
@@ -239,10 +240,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
     return MaterialApp(
       navigatorKey: AlarmRingCoordinator.navigatorKey,
       title: 'WakeNihongo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [
         Locale('ko', 'KR'),

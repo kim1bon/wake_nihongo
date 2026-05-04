@@ -1,5 +1,7 @@
+import '../../../core/constants/quiz_sheet_config.dart';
 import '../domain/quiz_entry.dart';
 import 'quiz_cache_local_data_source.dart';
+import 'quiz_index_remote_data_source.dart';
 import 'quiz_local_asset_data_source.dart';
 import 'quiz_remote_data_source.dart';
 import 'quiz_sheet_parser.dart';
@@ -38,13 +40,16 @@ class QuizRepository {
     QuizRemoteDataSource? remoteDataSource,
     QuizVersionRemoteDataSource? versionRemoteDataSource,
     QuizCacheLocalDataSource? cacheLocalDataSource,
+    QuizIndexRemoteDataSource? indexRemoteDataSource,
   }) : _remote = remoteDataSource ?? QuizRemoteDataSource(),
        _versionRemote = versionRemoteDataSource ?? QuizVersionRemoteDataSource(),
-       _cache = cacheLocalDataSource ?? QuizCacheLocalDataSource();
+       _cache = cacheLocalDataSource ?? QuizCacheLocalDataSource(),
+       _index = indexRemoteDataSource ?? QuizIndexRemoteDataSource();
 
   final QuizRemoteDataSource _remote;
   final QuizVersionRemoteDataSource _versionRemote;
   final QuizCacheLocalDataSource _cache;
+  final QuizIndexRemoteDataSource _index;
 
   /// 로컬/원격 버전 상태를 확인합니다. 원격 조회 실패 시 `null`.
   Future<QuizVersionStatus?> checkVersionStatus() async {
@@ -62,12 +67,30 @@ class QuizRepository {
     }
   }
 
-  /// 원격 퀴즈 CSV를 내려받아 로컬 파일/버전을 갱신합니다.
+  /// 인덱스 시트 기준으로 활성 URL들을 내려받아 시트별 로컬 파일·매니페스트를 갱신합니다.
+  /// 실패 시 레거시 단일 GID CSV로 폴백합니다.
   Future<QuizSyncResult> updateQuizFromRemote({
     required QuizVersionStatus status,
   }) async {
+    final multi = await _downloadMultiSheetsToCache();
+    if (multi != null && multi.isNotEmpty) {
+      await _cache.deleteMainQuizCsvIfExists();
+      await _cache.saveMeta(
+        version: status.remoteVersion,
+        quizVersion: status.remoteQuizVersion,
+      );
+      return QuizSyncResult(
+        updated: true,
+        previousQuizVersion: status.localQuizVersion,
+        currentQuizVersion: status.remoteQuizVersion,
+      );
+    }
+
     try {
-      final quizCsv = await _remote.fetchRawCsv();
+      final quizCsv = await _remote.fetchRawCsv(
+        uri: QuizSheetConfig.legacyQuizExportCsvUri,
+      );
+      await _cache.clearMultiSheetCache();
       await _cache.writeMainQuizCsv(quizCsv);
       await _cache.saveMeta(
         version: status.remoteVersion,
@@ -87,19 +110,28 @@ class QuizRepository {
     }
   }
 
-  /// 로컬 CSV 우선, 없으면 원격, 둘 다 실패하면 번들 샘플 사용.
+  /// 1) 매니페스트+시트별 파일 → 2) 레거시 단일 CSV → 3) 네트워크(인덱스) → 4) 레거시 단일 URL → 5) 샘플
   Future<List<QuizEntry>> loadEntries() async {
-    final localCsv = await _cache.readMainQuizCsv();
-    if (localCsv != null && localCsv.trim().isNotEmpty) {
+    final fromManifest = await _loadFromManifest();
+    if (fromManifest.isNotEmpty) return fromManifest;
+
+    final legacyLocal = await _cache.readMainQuizCsv();
+    if (legacyLocal != null && legacyLocal.trim().isNotEmpty) {
       try {
-        return parseQuizSheetCsv(localCsv);
-      } catch (_) {
-        // 손상된 로컬 CSV는 무시하고 원격/샘플 폴백을 시도.
-      }
+        return parseQuizSheetCsv(legacyLocal);
+      } catch (_) {}
+    }
+
+    final fromNetMulti = await _downloadMultiSheetsToCache();
+    if (fromNetMulti != null && fromNetMulti.isNotEmpty) {
+      return fromNetMulti;
     }
 
     try {
-      final remoteCsv = await _remote.fetchRawCsv();
+      final remoteCsv = await _remote.fetchRawCsv(
+        uri: QuizSheetConfig.legacyQuizExportCsvUri,
+      );
+      await _cache.clearMultiSheetCache();
       await _cache.writeMainQuizCsv(remoteCsv);
       try {
         final remoteMeta = await _versionRemote.fetchVersionInfo();
@@ -107,12 +139,79 @@ class QuizRepository {
           version: remoteMeta.version,
           quizVersion: remoteMeta.quizVersion,
         );
-      } catch (_) {
-        // 메타 동기화 실패 시에도 방금 저장한 CSV는 계속 사용.
-      }
+      } catch (_) {}
       return parseQuizSheetCsv(remoteCsv);
     } catch (_) {
       return QuizLocalAssetDataSource.loadSampleEntries();
     }
+  }
+
+  Future<List<QuizEntry>> _loadFromManifest() async {
+    final manifest = await _cache.readSheetsManifest();
+    if (manifest == null) return [];
+
+    final merged = <QuizEntry>[];
+    for (final slot in manifest.sheets) {
+      final raw = await _cache.readSheetCsv(slot.storageKey);
+      if (raw == null || raw.trim().isEmpty) continue;
+      try {
+        merged.addAll(parseQuizSheetCsv(raw));
+      } catch (_) {}
+    }
+    return merged;
+  }
+
+  /// 인덱스에서 활성 시트를 받아 저장하고, 파싱된 전체 목록을 반환합니다. 실패 시 `null`.
+  Future<List<QuizEntry>?> _downloadMultiSheetsToCache() async {
+    List<QuizIndexRow> rows;
+    try {
+      rows = await _index.fetchActiveRows();
+    } catch (_) {
+      return null;
+    }
+    if (rows.isEmpty) return null;
+
+    final usedKeys = <String>{};
+    final slots = <QuizSheetManifestSlot>[];
+    final merged = <QuizEntry>[];
+    var okCount = 0;
+
+    for (var i = 0; i < rows.length; i++) {
+      final row = rows[i];
+      var key = _storageKeyForIndexId(row.id);
+      var disambig = 0;
+      while (usedKeys.contains(key)) {
+        disambig++;
+        key = '${_storageKeyForIndexId(row.id)}_$disambig';
+      }
+      usedKeys.add(key);
+
+      final uri = normalizeGoogleSheetCsvUri(row.url);
+      if (uri == null) continue;
+
+      try {
+        final csv = await _remote.fetchRawCsv(uri: uri);
+        await _cache.writeSheetCsv(storageKey: key, raw: csv);
+        final parsed = parseQuizSheetCsv(csv);
+        merged.addAll(parsed);
+        slots.add(
+          QuizSheetManifestSlot(storageKey: key, contentName: row.contentName),
+        );
+        okCount++;
+      } catch (_) {}
+    }
+
+    if (okCount == 0) return null;
+
+    await _cache.writeSheetsManifest(QuizSheetsManifest(sheets: slots));
+    await _cache.pruneSheetsNotIn(usedKeys);
+    return merged;
+  }
+
+  static String _storageKeyForIndexId(String id) {
+    var s = id.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    if (s.isEmpty) return 'sheet';
+    if (s.length > 80) s = s.substring(0, 80);
+    return s;
   }
 }

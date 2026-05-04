@@ -92,7 +92,7 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
                   child: Text(
                     '출제 가능한 문제가 없습니다.\n'
                     '같은 카테고리·같은 타입 안에서 서로 다른 한국어 뜻이 '
-                    '충분해야 합니다.\n(단어: 4개 이상, 그 외: 2개 이상)',
+                    '충분해야 합니다.\n(sentence: 2개 이상, 그 외: 4개 이상)',
                     textAlign: TextAlign.center,
                   ),
                 ),

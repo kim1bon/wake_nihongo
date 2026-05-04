@@ -30,7 +30,7 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WakeNihongo'),
+        title: const Text('알람'),
         actions: [
           IconButton(
             tooltip: '일본어 퀴즈',

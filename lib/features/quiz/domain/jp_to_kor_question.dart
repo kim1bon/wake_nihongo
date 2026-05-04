@@ -2,6 +2,7 @@
 class JpToKorQuestion {
   const JpToKorQuestion({
     required this.promptJp,
+    this.promptHiragana,
     required this.koreanChoices,
     required this.japaneseChoices,
     required this.correctChoiceIndex,
@@ -13,6 +14,10 @@ class JpToKorQuestion {
         );
 
   final String promptJp;
+
+  /// 시트에서 `hiragana_display`가 참일 때만 채움. UI에서 `jp` 아래 보조 줄로 표시.
+  final String? promptHiragana;
+
   final List<String> koreanChoices;
 
   /// [koreanChoices]와 같은 순서·길이. 각 선택지 한국어에 대응하는 일본어 표기.

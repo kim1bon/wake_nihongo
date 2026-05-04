@@ -18,7 +18,7 @@ class QuizRemoteDataSource {
   }
 
   Future<String> fetchRawCsv({Uri? uri}) async {
-    final u = uri ?? QuizSheetConfig.quizExportCsvUri;
+    final u = uri ?? QuizSheetConfig.legacyQuizExportCsvUri;
     final c = _client;
     final response = await (c != null ? c.get(u) : http.get(u)).timeout(
       const Duration(seconds: 6),

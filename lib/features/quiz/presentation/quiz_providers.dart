@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../settings/presentation/quiz_alarm_categories_notifier.dart';
-import '../../settings/presentation/quiz_alarm_types_notifier.dart';
+import '../../settings/presentation/quiz_alarm_category_levels_notifier.dart';
 import '../data/quiz_cache_local_data_source.dart';
 import '../data/quiz_repository.dart';
 import '../data/quiz_version_remote_data_source.dart';
@@ -34,13 +34,20 @@ final quizEntriesProvider = FutureProvider<List<QuizEntry>>((ref) async {
   return repository.loadEntries();
 });
 
-/// 설정의 type·category 에 맞춘 출제용 목록 (알람 해제 퀴즈·연습 퀴즈 공통).
+/// 설정의 category·카테고리별 level 에 맞춘 출제용 목록.
+/// 출제 형식: 시트 `type`이 `sentence`면 2지선다, 그 외는 4지선다(대소문자 무시).
 final quizFilteredEntriesProvider = FutureProvider<List<QuizEntry>>((ref) async {
   final entries = await ref.watch(quizEntriesProvider.future);
-  final enabledTypes = await ref.watch(quizAlarmEnabledTypesProvider.future);
+  var levelsByCategory = await ref.watch(quizAlarmCategoryLevelsProvider.future);
   var enabledCategories = await ref.watch(quizAlarmEnabledCategoriesProvider.future);
 
-  var filtered = QuizGenerator.filterByEnabledTypes(entries, enabledTypes);
+  if (levelsByCategory.isNotEmpty) {
+    final knownCats = entries.map((e) => e.category.trim()).toSet();
+    levelsByCategory = Map.fromEntries(
+      levelsByCategory.entries.where((e) => knownCats.contains(e.key)),
+    );
+    levelsByCategory.removeWhere((_, levels) => levels.isEmpty);
+  }
 
   if (enabledCategories.isNotEmpty) {
     final known = entries.map((e) => e.category.trim()).toSet();
@@ -49,6 +56,8 @@ final quizFilteredEntriesProvider = FutureProvider<List<QuizEntry>>((ref) async 
       enabledCategories = {};
     }
   }
-  filtered = QuizGenerator.filterByEnabledCategories(filtered, enabledCategories);
+
+  var filtered = QuizGenerator.filterByEnabledCategories(entries, enabledCategories);
+  filtered = QuizGenerator.filterByCategoryLevels(filtered, levelsByCategory);
   return filtered;
 });

@@ -4,10 +4,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/theme.dart';
 import '../../quiz/domain/jp_to_kor_question.dart';
 import '../../quiz/domain/quiz_generator.dart';
 import '../../quiz/presentation/quiz_challenge_body.dart';
 import '../../quiz/presentation/quiz_providers.dart';
+import 'alarm_quiz_success_screen.dart';
 
 /// 알림(전체 화면 인텐트 포함)으로 앱이 열렸을 때 표시하는 전용 화면. 뒤로 가기로는 닫히지 않습니다.
 /// 시트에서 문제를 불러 정답을 맞춘 뒤에만 알람을 끌 수 있습니다. (불러오기 실패·출제 불가 시 건너뛰기 가능)
@@ -84,6 +86,20 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (_quizSolved &&
+        _question != null &&
+        !_loadingQuiz &&
+        _loadError == null) {
+      return PopScope(
+        canPop: false,
+        child: AlarmQuizSuccessScreen(
+          onStopAlarm: () {
+            unawaited(_onDismissPressed());
+          },
+        ),
+      );
+    }
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -98,14 +114,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.22),
-                      Colors.black.withValues(alpha: 0.42),
-                    ],
-                  ),
+                  gradient: context.wnColors.alarmRingScrim,
                 ),
               ),
             ),
@@ -121,10 +130,10 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: context.wnColors.alarmBannerFill,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
+                          color: context.wnColors.alarmBannerBorder,
                         ),
                       ),
                       child: Row(
@@ -166,15 +175,18 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                     ],
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: theme.colorScheme.onSurface,
+                        backgroundColor: AppPalette.beigeSoft,
+                        foregroundColor: AppPalette.navy,
                         disabledBackgroundColor:
-                            Colors.white.withValues(alpha: 0.55),
+                            AppPalette.beigeSoft.withValues(alpha: 0.55),
                         disabledForegroundColor:
-                            theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                            AppPalette.navy.withValues(alpha: 0.45),
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
+                        ),
+                        side: BorderSide(
+                          color: context.wnColors.alarmPrimaryButtonBorder,
                         ),
                       ),
                       onPressed: _canDismiss ? _onDismissPressed : null,
@@ -205,13 +217,16 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
 
   Widget _buildQuizSection(ThemeData theme) {
     if (_loadingQuiz) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('문제를 불러오는 중…'),
+            CircularProgressIndicator(color: theme.colorScheme.secondary),
+            const SizedBox(height: 16),
+            Text(
+              '문제를 불러오는 중…',
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            ),
           ],
         ),
       );
@@ -245,40 +260,6 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
           '지금 조건으로 출제할 수 있는 문제가 없습니다.\n알람만 종료할 수 있습니다.',
           style: theme.textTheme.bodyMedium,
           textAlign: TextAlign.center,
-        ),
-      );
-    }
-
-    if (_quizSolved) {
-      return Center(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle,
-                size: 70,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '정답입니다!',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
         ),
       );
     }

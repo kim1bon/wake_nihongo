@@ -5,7 +5,7 @@ import '../../alarm/presentation/alarm_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
 import '../../quiz/presentation/quiz_providers.dart';
 import 'quiz_alarm_categories_notifier.dart';
-import 'quiz_alarm_types_notifier.dart';
+import 'quiz_alarm_category_levels_notifier.dart';
 
 List<String> _sortedCategoryNames(List<QuizEntry> entries) {
   final s = entries
@@ -39,6 +39,7 @@ Future<void> _toggleQuizCategory({
         return;
       }
       await ref.read(quizAlarmEnabledCategoriesProvider.notifier).setCategories(next);
+      await ref.read(quizAlarmCategoryLevelsProvider.notifier).clearCategory(category);
     }
     return;
   }
@@ -61,19 +62,89 @@ Future<void> _toggleQuizCategory({
       return;
     }
     await ref.read(quizAlarmEnabledCategoriesProvider.notifier).setCategories(next);
+    await ref.read(quizAlarmCategoryLevelsProvider.notifier).clearCategory(category);
   }
 }
 
-/// 알람 관련 안내·권한, 알람 해제 시 퀴즈 유형·카테고리 설정.
+List<String> _sortedLevelsForCategory(List<QuizEntry> entries, String category) {
+  final raw = entries
+      .where((e) => e.category.trim() == category)
+      .map((e) => e.level.trim())
+      .where((l) => l.isNotEmpty)
+      .toSet()
+      .toList();
+  raw.sort((a, b) {
+    final ia = int.tryParse(a);
+    final ib = int.tryParse(b);
+    if (ia != null && ib != null) return ia.compareTo(ib);
+    if (ia != null) return -1;
+    if (ib != null) return 1;
+    return a.compareTo(b);
+  });
+  return raw;
+}
+
+/// [restricted] — 저장된 제한 집합(비어 있으면 해당 카테고리는 전체 레벨 허용으로 간주).
+Future<void> _toggleLevelForCategory({
+  required WidgetRef ref,
+  required BuildContext context,
+  required String category,
+  required String level,
+  required bool? checked,
+  required List<String> allSorted,
+  required Set<String> restricted,
+}) async {
+  if (checked == null || allSorted.isEmpty) return;
+  final allSet = allSorted.toSet();
+  final notifier = ref.read(quizAlarmCategoryLevelsProvider.notifier);
+
+  if (restricted.isEmpty) {
+    if (!checked) {
+      final next = allSet.difference({level});
+      if (next.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('최소 한 가지 레벨은 선택해 주세요.')),
+          );
+        }
+        return;
+      }
+      await notifier.setLevelsForCategory(category, next);
+    }
+    return;
+  }
+
+  if (checked) {
+    final next = {...restricted, level};
+    if (next.length == allSet.length && allSet.containsAll(next)) {
+      await notifier.setLevelsForCategory(category, {});
+    } else {
+      await notifier.setLevelsForCategory(category, next);
+    }
+  } else {
+    final next = {...restricted}..remove(level);
+    if (next.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('최소 한 가지 레벨은 선택해 주세요.')),
+        );
+      }
+      return;
+    }
+    await notifier.setLevelsForCategory(category, next);
+  }
+}
+
+/// 알람 관련 안내·권한, 알람 해제 시 퀴즈 카테고리·레벨 설정.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final typesAsync = ref.watch(quizAlarmEnabledTypesProvider);
     final entriesAsync = ref.watch(quizEntriesProvider);
     final categoriesAsync = ref.watch(quizAlarmEnabledCategoriesProvider);
+    final categoryLevelsAsync = ref.watch(quizAlarmCategoryLevelsProvider);
     final localQuizVersionAsync = ref.watch(localQuizVersionProvider);
     final remoteQuizVersionAsync = ref.watch(remoteQuizVersionProvider);
 
@@ -160,7 +231,8 @@ class SettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              '알람을 끌 때 출제되는 문제 범위입니다. 시트의「type」「category」열과 같습니다.',
+              '알람을 끌 때 출제되는 문제 범위입니다. 카테고리를 펼치면 해당 묶음의 레벨만 골라 출제할 수 있습니다. '
+              '시트의「category」「level」열과 같으며, type이 sentence면 2지·그 외 4지입니다.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
               ),
@@ -170,63 +242,14 @@ class SettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
-              '유형 (type)',
-              style: theme.textTheme.titleSmall,
-            ),
-          ),
-          typesAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('설정을 불러오지 못했습니다.\n$e'),
-            ),
-            data: (enabled) => Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  for (final type in kQuizAlarmTypeLabels)
-                    CheckboxListTile(
-                      title: Text(type),
-                      value: enabled.contains(type),
-                      onChanged: (checked) async {
-                        if (checked == null) return;
-                        final next = {...enabled};
-                        if (checked) {
-                          next.add(type);
-                        } else {
-                          next.remove(type);
-                        }
-                        if (next.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('최소 한 가지 유형은 켜 두어야 합니다.'),
-                            ),
-                          );
-                          return;
-                        }
-                        await ref
-                            .read(quizAlarmEnabledTypesProvider.notifier)
-                            .setTypes(next);
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text(
-              '카테고리 (category)',
+              '카테고리 · 레벨',
               style: theme.textTheme.titleSmall,
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              '모두 선택이면 전체 카테고리에서 출제됩니다. 일부만 끄면 해당 제목만 제외됩니다.',
+              '카테고리를 모두 켜 두면 전체에서 출제됩니다. 펼친 뒤 레벨을 일부만 켜 두면 그 카테고리는 선택한 레벨만 출제됩니다.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
               ),
@@ -253,36 +276,62 @@ class SettingsScreen extends ConsumerWidget {
                   child: Text('카테고리 설정을 불러오지 못했습니다.\n$e'),
                 ),
                 data: (savedCategories) {
-                  final allCats = _sortedCategoryNames(entries);
-                  if (allCats.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Card(
-                        child: ListTile(
-                          title: Text('불러온 데이터에 카테고리가 없습니다.'),
-                        ),
-                      ),
-                    );
-                  }
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      children: [
-                        for (final cat in allCats)
-                          CheckboxListTile(
-                            title: Text(cat),
-                            value: savedCategories.isEmpty || savedCategories.contains(cat),
-                            onChanged: (checked) => _toggleQuizCategory(
-                              ref: ref,
-                              context: context,
-                              category: cat,
-                              checked: checked,
-                              allSorted: allCats,
-                              saved: savedCategories,
+                  return categoryLevelsAsync.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (e, _) => Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text('레벨 설정을 불러오지 못했습니다.\n$e'),
+                    ),
+                    data: (levelsByCategory) {
+                      final allCats = _sortedCategoryNames(entries);
+                      if (allCats.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Card(
+                            child: ListTile(
+                              title: Text('불러온 데이터에 카테고리가 없습니다.'),
                             ),
                           ),
-                      ],
-                    ),
+                        );
+                      }
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < allCats.length; i++) ...[
+                              if (i > 0) const Divider(height: 1),
+                              _CategoryLevelExpansionTile(
+                                category: allCats[i],
+                                entries: entries,
+                                savedCategories: savedCategories,
+                                levelsByCategory: levelsByCategory,
+                                onToggleCategory: (checked) => _toggleQuizCategory(
+                                  ref: ref,
+                                  context: context,
+                                  category: allCats[i],
+                                  checked: checked,
+                                  allSorted: allCats,
+                                  saved: savedCategories,
+                                ),
+                                onToggleLevel: (level, checked) => _toggleLevelForCategory(
+                                  ref: ref,
+                                  context: context,
+                                  category: allCats[i],
+                                  level: level,
+                                  checked: checked,
+                                  allSorted: _sortedLevelsForCategory(entries, allCats[i]),
+                                  restricted: levelsByCategory[allCats[i]] ?? {},
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               );
@@ -341,6 +390,89 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryLevelExpansionTile extends StatelessWidget {
+  const _CategoryLevelExpansionTile({
+    required this.category,
+    required this.entries,
+    required this.savedCategories,
+    required this.levelsByCategory,
+    required this.onToggleCategory,
+    required this.onToggleLevel,
+  });
+
+  final String category;
+  final List<QuizEntry> entries;
+  final Set<String> savedCategories;
+  final Map<String, Set<String>> levelsByCategory;
+  final void Function(bool? checked) onToggleCategory;
+  final void Function(String level, bool? checked) onToggleLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final categoryOn =
+        savedCategories.isEmpty || savedCategories.contains(category);
+    final levels = _sortedLevelsForCategory(entries, category);
+    final restricted = levelsByCategory[category] ?? {};
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.fromLTRB(8, 0, 16, 0),
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        leading: Checkbox(
+          visualDensity: VisualDensity.compact,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          value: categoryOn,
+          onChanged: onToggleCategory,
+        ),
+        title: Text(
+          category,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: levels.isEmpty
+            ? Text(
+                'level 값 없음',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              )
+            : Text(
+                restricted.isEmpty
+                    ? '전체 레벨 출제'
+                    : '레벨 ${restricted.length}/${levels.length}개만 출제',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+        children: [
+          if (levels.isEmpty)
+            ListTile(
+              dense: true,
+              title: Text(
+                '시트에 level 열을 채우면 여기서 고를 수 있어요.',
+                style: theme.textTheme.bodySmall,
+              ),
+            )
+          else
+            ...levels.map(
+              (lv) => CheckboxListTile(
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text('레벨 $lv'),
+                value: restricted.isEmpty || restricted.contains(lv),
+                onChanged:
+                    categoryOn ? (c) => onToggleLevel(lv, c) : null,
+              ),
+            ),
         ],
       ),
     );
