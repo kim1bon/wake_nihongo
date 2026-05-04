@@ -1,10 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/alarm_pending_state_store.dart';
+import '../../../app/alarm_services.dart';
 import '../../../core/theme/theme.dart';
+import '../data/alarm_native_android.dart';
+import '../data/alarm_reschedule_session_store.dart';
+import '../domain/alarm.dart';
+import 'alarm_providers.dart';
+import '../../settings/presentation/alarm_quiz_question_count_notifier.dart';
 import '../../quiz/domain/jp_to_kor_question.dart';
 import '../../quiz/domain/quiz_generator.dart';
 import '../../quiz/presentation/quiz_challenge_body.dart';
@@ -17,9 +25,13 @@ class AlarmRingScreen extends ConsumerStatefulWidget {
   const AlarmRingScreen({
     super.key,
     required this.onDismiss,
+    this.alarmId = -1,
   });
 
   final Future<void> Function() onDismiss;
+
+  /// 로컬 DB 알람 ID. 없으면 다시 알림을 쓸 수 없습니다.
+  final int alarmId;
 
   @override
   ConsumerState<AlarmRingScreen> createState() => _AlarmRingScreenState();
@@ -32,9 +44,14 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   String? _loadError;
   JpToKorQuestion? _question;
   bool _quizSolved = false;
+  int _requiredQuestions = AlarmQuizQuestionCountNotifier.defaultCount;
+  int _correctSoFar = 0;
   bool _wrong = false;
   int? _wrongPickIndex;
   int? _correctPickIndex;
+
+  Alarm? _boundAlarm;
+  int _rescheduleRemaining = 0;
 
   bool get _mustSolveQuiz =>
       !_loadingQuiz && _loadError == null && _question != null;
@@ -42,10 +59,76 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   bool get _canDismiss =>
       _quizSolved || !_mustSolveQuiz;
 
+  String get _bannerPrimaryLine {
+    if (_quizSolved || !_mustSolveQuiz) {
+      return '알람을 종료할 수 있어요';
+    }
+    if (_requiredQuestions > 1) {
+      return '문제 ${_correctSoFar + 1}/$_requiredQuestions — 모두 맞히면 알람을 끌 수 있어요';
+    }
+    return '정답을 맞히면 알람을 끌 수 있어요';
+  }
+
+  bool get _showRescheduleButton {
+    final a = _boundAlarm;
+    return widget.alarmId >= 0 &&
+        !_quizSolved &&
+        a != null &&
+        a.rescheduleEnabled &&
+        _rescheduleRemaining > 0;
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadQuiz());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _refreshRescheduleState();
+      await _loadQuiz();
+    });
+  }
+
+  Future<void> _refreshRescheduleState() async {
+    if (widget.alarmId < 0) {
+      if (mounted) {
+        setState(() {
+          _boundAlarm = null;
+          _rescheduleRemaining = 0;
+        });
+      }
+      return;
+    }
+    final alarm = await ref.read(alarmRepositoryProvider).getAlarm(widget.alarmId);
+    final left = await AlarmRescheduleSessionStore.readRemaining(widget.alarmId);
+    if (!mounted) return;
+    setState(() {
+      _boundAlarm = alarm;
+      _rescheduleRemaining = left ?? 0;
+    });
+  }
+
+  Future<void> _onReschedulePressed() async {
+    final id = widget.alarmId;
+    if (id < 0) return;
+    final alarm = _boundAlarm ?? await ref.read(alarmRepositoryProvider).getAlarm(id);
+    if (alarm == null || !alarm.rescheduleEnabled) return;
+    final left = await AlarmRescheduleSessionStore.readRemaining(id);
+    if (left == null || left <= 0) return;
+
+    await ref.read(alarmRepositoryProvider).scheduleReschedule(
+          alarmId: id,
+          soundId: alarm.soundId,
+          delayMinutes: alarm.rescheduleDelayMinutes,
+        );
+    await AlarmRescheduleSessionStore.decrementRemaining(id);
+
+    await AlarmServices.ringtonePlayer.stop();
+    await AlarmPendingStateStore.clear();
+    if (Platform.isAndroid) {
+      await AlarmNativeAndroid.stopRinging();
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _loadQuiz() async {
@@ -54,11 +137,18 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
       _loadError = null;
       _question = null;
       _quizSolved = false;
+      _correctSoFar = 0;
       _wrong = false;
       _wrongPickIndex = null;
       _correctPickIndex = null;
     });
     try {
+      final requiredRaw = await ref.read(alarmQuizQuestionCountProvider.future);
+      if (!mounted) return;
+      _requiredQuestions = requiredRaw.clamp(
+        AlarmQuizQuestionCountNotifier.minCount,
+        AlarmQuizQuestionCountNotifier.maxCount,
+      );
       final filtered = await ref.read(quizFilteredEntriesProvider.future);
       if (!mounted) return;
       final q = QuizGenerator.generate(filtered, random: _random);
@@ -71,6 +161,41 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
       setState(() {
         _loadingQuiz = false;
         _loadError = '$e';
+      });
+    }
+  }
+
+  Future<void> _onCorrectAnswer() async {
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    if (!mounted) return;
+    setState(() {
+      _correctSoFar++;
+      _correctPickIndex = null;
+      if (_correctSoFar >= _requiredQuestions) {
+        _quizSolved = true;
+      }
+    });
+    if (!_quizSolved) {
+      await _drawNextQuestion();
+    }
+  }
+
+  Future<void> _drawNextQuestion() async {
+    try {
+      final filtered = await ref.read(quizFilteredEntriesProvider.future);
+      if (!mounted) return;
+      final q = QuizGenerator.generate(filtered, random: _random);
+      if (!mounted) return;
+      setState(() {
+        _question = q;
+        _wrong = false;
+        _wrongPickIndex = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = '$e';
+        _question = null;
       });
     }
   }
@@ -146,9 +271,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _mustSolveQuiz && !_quizSolved
-                                ? '정답을 맞히면 알람을 끌 수 있어요'
-                                : '알람을 종료할 수 있어요',
+                            _bannerPrimaryLine,
                             style: theme.textTheme.titleSmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -172,6 +295,25 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         child: const Text('문제 다시 불러오기'),
                       ),
                       const SizedBox(height: 8),
+                    ],
+                    if (_showRescheduleButton) ...[
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.92),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _onReschedulePressed,
+                        child: Text(
+                          '다시 알림 (${_boundAlarm!.rescheduleDelayMinutes}분 후 · 남음 $_rescheduleRemaining회)',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                     ],
                     FilledButton(
                       style: FilledButton.styleFrom(
@@ -198,7 +340,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: Text(
-                          '정답을 선택하면 버튼이 활성화됩니다.',
+                          _requiredQuestions > 1
+                              ? '$_requiredQuestions개 모두 맞히면 버튼이 활성화됩니다.'
+                              : '정답을 선택하면 버튼이 활성화됩니다.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white.withValues(alpha: 0.86),
                           ),
@@ -278,15 +422,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
             _wrongPickIndex = null;
             _correctPickIndex = q.correctChoiceIndex;
           });
-          unawaited(
-            Future<void>.delayed(const Duration(milliseconds: 650), () {
-              if (!mounted) return;
-              setState(() {
-                _quizSolved = true;
-                _correctPickIndex = null;
-              });
-            }),
-          );
+          unawaited(_onCorrectAnswer());
         } else {
           setState(() {
             _wrong = true;

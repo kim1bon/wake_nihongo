@@ -93,7 +93,7 @@ class AlarmRingForegroundService : Service() {
         )
 
         val notif = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("WakeNihongo 알람")
+            .setContentTitle("일어나 알람")
             .setContentText("알람이 울리는 중입니다. 탭하여 앱에서 끄세요.")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)

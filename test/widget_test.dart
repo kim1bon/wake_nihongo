@@ -20,7 +20,9 @@ void main() {
         child: const WakeNihongoApp(),
       ),
     );
-    await tester.pumpAndSettle();
-    expect(find.text('WakeNihongo'), findsOneWidget);
+    await tester.pump();
+    // [WakeNihongoApp] 퀴즈 동기화용 1초 지연 타이머
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.text('알람'), findsWidgets);
   });
 }

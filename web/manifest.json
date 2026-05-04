@@ -1,6 +1,6 @@
 {
-    "name": "wake_nihongo",
-    "short_name": "wake_nihongo",
+    "name": "일어나",
+    "short_name": "일어나",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

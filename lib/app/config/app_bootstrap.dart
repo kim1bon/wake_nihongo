@@ -48,6 +48,7 @@ class AppBootstrap {
     await dataSource.open();
 
     final repo = AlarmRepositoryImpl(dataSource, scheduler);
+    AlarmServices.alarmRepository = repo;
     await repo.restoreSchedules();
     return repo;
   }

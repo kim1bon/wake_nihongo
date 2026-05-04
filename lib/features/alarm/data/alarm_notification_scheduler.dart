@@ -6,6 +6,8 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../domain/alarm.dart';
+import '../domain/alarm_payload_kind.dart';
+
 /// Schedules alarms. Android: per-sound notification channel + `res/raw` tone + alarm usage.
 /// iOS: bundled `Alram_0x.mp3` in Runner. See [AlarmSoundIds].
 class AlarmNotificationScheduler {
@@ -13,7 +15,9 @@ class AlarmNotificationScheduler {
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  static const _channelDescription = 'WakeNihongo 알람 (알람 볼륨)';
+  static const _appNotificationTitle = '일어나';
+
+  static const _channelDescription = '일어나 알람 (알람 볼륨)';
   static const _iosMaxPendingNotifications = 64;
   static const _iosSnoozeMaxCount = 10;
   static const _iosRepeatSlots = _iosSnoozeMaxCount + 1;
@@ -22,6 +26,9 @@ class AlarmNotificationScheduler {
   static int notificationId(int alarmId, int weekday) => alarmId * 10 + weekday;
   static int _iosSlotNotificationId(int alarmId, int weekday, int slot) =>
       alarmId * 100 + (weekday * 10) + slot;
+
+  /// 「다시 알림」일회 예약용. 주간 슬롯·iOS 체인 ID와 겹치지 않도록 큰 베이스를 둡니다.
+  static int rescheduleNotificationId(int alarmId) => 800000000 + alarmId;
 
   String _androidChannelId(String soundId) =>
       'wake_nihongo_${AlarmSoundIds.channelSuffix(soundId)}';
@@ -79,6 +86,74 @@ class AlarmNotificationScheduler {
         await _plugin.cancel(_iosSlotNotificationId(alarmId, weekday, slot));
       }
     }
+    await cancelRescheduleForAlarmId(alarmId);
+  }
+
+  Future<void> cancelRescheduleForAlarmId(int alarmId) async {
+    await _plugin.cancel(rescheduleNotificationId(alarmId));
+  }
+
+  /// 앱이 꺼져 있어도 [delayMinutes] 후 알람 UI로 이어지도록 로컬 알림 1회 예약.
+  Future<void> scheduleReschedule({
+    required int alarmId,
+    required String soundId,
+    required int delayMinutes,
+  }) async {
+    if (alarmId < 0) return;
+    final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
+    final rawName = AlarmSoundIds.androidRawName(sid);
+    final channelId = _androidChannelId(sid);
+    final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: delayMinutes));
+
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      '알람 ($sid)',
+      channelDescription: _channelDescription,
+      importance: Importance.max,
+      priority: Priority.max,
+      category: AndroidNotificationCategory.alarm,
+      fullScreenIntent: true,
+      visibility: NotificationVisibility.public,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      sound: RawResourceAndroidNotificationSound(rawName),
+      playSound: true,
+      enableVibration: true,
+      ongoing: true,
+      autoCancel: false,
+      onlyAlertOnce: false,
+    );
+    final iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      presentBanner: true,
+      presentList: true,
+      sound: AlarmSoundIds.iosFileName(sid),
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+    final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+    final payload = jsonEncode({
+      'alarmId': alarmId,
+      'soundId': sid,
+      'kind': AlarmPayloadKind.reschedule.name,
+    });
+
+    if (Platform.isIOS) {
+      final pending = await _plugin.pendingNotificationRequests();
+      if (pending.length >= _iosMaxPendingNotifications) return;
+    }
+
+    await _plugin.zonedSchedule(
+      rescheduleNotificationId(alarmId),
+      _appNotificationTitle,
+      '$delayMinutes분 후 다시 알려드릴게요.',
+      when,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
   }
 
   Future<void> schedule(Alarm alarm) async {
@@ -121,6 +196,7 @@ class AlarmNotificationScheduler {
     final payload = jsonEncode({
       'alarmId': alarm.id,
       'soundId': soundId,
+      'kind': AlarmPayloadKind.weekly.name,
     });
 
     var iosBudget = 0;
@@ -139,7 +215,7 @@ class AlarmNotificationScheduler {
           final when = firstWhen.add(_iosRepeatInterval * slot);
           await _plugin.zonedSchedule(
             _iosSlotNotificationId(alarm.id, weekday, slot),
-            'WakeNihongo',
+            _appNotificationTitle,
             '알람 시간입니다. 앱을 열어 알람을 끄세요.',
             when,
             details,
@@ -153,7 +229,7 @@ class AlarmNotificationScheduler {
       } else {
         await _plugin.zonedSchedule(
           notificationId(alarm.id, weekday),
-          'WakeNihongo',
+          _appNotificationTitle,
           '알람 시간입니다. 앱을 열어 알람을 끄세요.',
           firstWhen,
           details,

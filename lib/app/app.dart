@@ -239,7 +239,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: AlarmRingCoordinator.navigatorKey,
-      title: 'WakeNihongo',
+      title: '일어나',
       theme: AppTheme.light(),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [

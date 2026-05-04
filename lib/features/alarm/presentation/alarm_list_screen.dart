@@ -26,11 +26,19 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final alarmsAsync = ref.watch(alarmsNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('알람'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.alarm, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 8),
+            const Text('알람'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: '일본어 퀴즈',

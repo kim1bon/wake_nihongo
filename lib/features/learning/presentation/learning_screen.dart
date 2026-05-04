@@ -49,7 +49,16 @@ class LearningScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('학습')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.menu_book, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 8),
+            const Text('학습'),
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

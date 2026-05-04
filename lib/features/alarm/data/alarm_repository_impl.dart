@@ -22,11 +22,17 @@ class AlarmRepositoryImpl implements AlarmRepository {
   Future<List<Alarm>> getAlarms() => _dataSource.getAll();
 
   @override
+  Future<Alarm?> getAlarm(int id) => _dataSource.getById(id);
+
+  @override
   Future<Alarm> createAlarm({
     required int hour,
     required int minute,
     required Set<int> weekdays,
     required String soundId,
+    bool rescheduleEnabled = false,
+    int rescheduleDelayMinutes = 5,
+    int rescheduleMaxCount = 3,
   }) async {
     await _ensureIosNotificationPermissions();
     final resolvedSoundId = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
@@ -35,6 +41,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
       minute: minute,
       weekdays: weekdays,
       soundId: resolvedSoundId,
+      rescheduleEnabled: rescheduleEnabled,
+      rescheduleDelayMinutes: rescheduleDelayMinutes,
+      rescheduleMaxCount: rescheduleMaxCount,
     );
     await _scheduler.schedule(alarm);
     await AlarmNativeAndroid.syncAlarms(await _dataSource.getAll());
@@ -70,6 +79,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
+    bool rescheduleEnabled = false,
+    int rescheduleDelayMinutes = 5,
+    int rescheduleMaxCount = 3,
   }) async {
     await _ensureIosNotificationPermissions();
     final existing = await _dataSource.getById(id);
@@ -85,6 +97,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
       weekdays: weekdays,
       enabled: existing.enabled,
       soundId: sid,
+      rescheduleEnabled: rescheduleEnabled,
+      rescheduleDelayMinutes: rescheduleDelayMinutes,
+      rescheduleMaxCount: rescheduleMaxCount,
     );
     final updated = await _dataSource.getById(id);
     if (updated == null) {
@@ -113,4 +128,24 @@ class AlarmRepositoryImpl implements AlarmRepository {
 
   @override
   Future<void> ensureNotificationPermissions() => _scheduler.ensurePermissions();
+
+  @override
+  Future<void> cancelPendingReschedule(int alarmId) async {
+    await _scheduler.cancelRescheduleForAlarmId(alarmId);
+  }
+
+  @override
+  Future<void> scheduleReschedule({
+    required int alarmId,
+    required String soundId,
+    required int delayMinutes,
+  }) async {
+    await _ensureIosNotificationPermissions();
+    final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
+    await _scheduler.scheduleReschedule(
+      alarmId: alarmId,
+      soundId: sid,
+      delayMinutes: delayMinutes.clamp(1, 15),
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../alarm/presentation/alarm_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
 import '../../quiz/presentation/quiz_providers.dart';
+import 'alarm_quiz_question_count_notifier.dart';
 import 'quiz_alarm_categories_notifier.dart';
 import 'quiz_alarm_category_levels_notifier.dart';
 
@@ -145,11 +146,21 @@ class SettingsScreen extends ConsumerWidget {
     final entriesAsync = ref.watch(quizEntriesProvider);
     final categoriesAsync = ref.watch(quizAlarmEnabledCategoriesProvider);
     final categoryLevelsAsync = ref.watch(quizAlarmCategoryLevelsProvider);
+    final alarmQuizCountAsync = ref.watch(alarmQuizQuestionCountProvider);
     final localQuizVersionAsync = ref.watch(localQuizVersionProvider);
     final remoteQuizVersionAsync = ref.watch(remoteQuizVersionProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('설정')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.settings, color: theme.colorScheme.onSurface),
+            const SizedBox(width: 8),
+            const Text('설정'),
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
@@ -196,11 +207,11 @@ class SettingsScreen extends ConsumerWidget {
                         title: const Text('iOS 알림 설정 가이드'),
                         content: const Text(
                           '아래 설정을 확인해 주세요.\n\n'
-                          '1) 설정 > 알림 > Wake Nihongo\n'
+                          '1) 설정 > 알림 > 일어나\n'
                           ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
                           ' - 시간 민감 알림(Time Sensitive) ON\n\n'
                           '2) 설정 > 집중 모드(Focus)\n'
-                          ' - Wake Nihongo 알림 허용\n\n'
+                          ' - 일어나 알림 허용\n\n'
                           '3) 설정 > 사운드 및 햅틱\n'
                           ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
                           '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 100% 강제할 수는 없습니다.',
@@ -239,6 +250,57 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: alarmQuizCountAsync.when(
+                loading: () => const ListTile(
+                  title: Text('알람 시 문제 개수'),
+                  subtitle: Text('불러오는 중…'),
+                ),
+                error: (e, _) => ListTile(
+                  title: const Text('알람 시 문제 개수'),
+                  subtitle: Text('설정을 불러오지 못했습니다.\n$e'),
+                ),
+                data: (count) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '알람 시 문제 개수',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '설정한 개수만큼 연속으로 맞혀야 알람을 끌 수 있어요.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment<int>(value: 1, label: Text('1개')),
+                          ButtonSegment<int>(value: 2, label: Text('2개')),
+                          ButtonSegment<int>(value: 3, label: Text('3개')),
+                        ],
+                        selected: {count},
+                        onSelectionChanged: (next) {
+                          final v = next.first;
+                          ref
+                              .read(alarmQuizQuestionCountProvider.notifier)
+                              .setCount(v);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(

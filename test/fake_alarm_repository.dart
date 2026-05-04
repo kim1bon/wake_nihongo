@@ -10,11 +10,23 @@ class FakeAlarmRepository implements AlarmRepository {
   Future<List<Alarm>> getAlarms() async => List.unmodifiable(_alarms);
 
   @override
+  Future<Alarm?> getAlarm(int id) async {
+    try {
+      return _alarms.firstWhere((a) => a.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
   Future<Alarm> createAlarm({
     required int hour,
     required int minute,
     required Set<int> weekdays,
     required String soundId,
+    bool rescheduleEnabled = false,
+    int rescheduleDelayMinutes = 5,
+    int rescheduleMaxCount = 3,
   }) async {
     final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     final alarm = Alarm(
@@ -24,6 +36,9 @@ class FakeAlarmRepository implements AlarmRepository {
       weekdays: Set<int>.from(weekdays),
       enabled: true,
       soundId: sid,
+      rescheduleEnabled: rescheduleEnabled,
+      rescheduleDelayMinutes: rescheduleDelayMinutes.clamp(1, 15),
+      rescheduleMaxCount: rescheduleMaxCount.clamp(1, 10),
     );
     _alarms.add(alarm);
     return alarm;
@@ -46,6 +61,9 @@ class FakeAlarmRepository implements AlarmRepository {
       weekdays: prev.weekdays,
       enabled: enabled,
       soundId: prev.soundId,
+      rescheduleEnabled: prev.rescheduleEnabled,
+      rescheduleDelayMinutes: prev.rescheduleDelayMinutes,
+      rescheduleMaxCount: prev.rescheduleMaxCount,
     );
   }
 
@@ -56,6 +74,9 @@ class FakeAlarmRepository implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
+    bool rescheduleEnabled = false,
+    int rescheduleDelayMinutes = 5,
+    int rescheduleMaxCount = 3,
   }) async {
     final i = _alarms.indexWhere((a) => a.id == id);
     if (i < 0) {
@@ -70,6 +91,9 @@ class FakeAlarmRepository implements AlarmRepository {
       weekdays: Set<int>.from(weekdays),
       enabled: prev.enabled,
       soundId: sid,
+      rescheduleEnabled: rescheduleEnabled,
+      rescheduleDelayMinutes: rescheduleDelayMinutes.clamp(1, 15),
+      rescheduleMaxCount: rescheduleMaxCount.clamp(1, 10),
     );
     _alarms[i] = next;
     return next;
@@ -80,4 +104,14 @@ class FakeAlarmRepository implements AlarmRepository {
 
   @override
   Future<void> ensureNotificationPermissions() async {}
+
+  @override
+  Future<void> cancelPendingReschedule(int alarmId) async {}
+
+  @override
+  Future<void> scheduleReschedule({
+    required int alarmId,
+    required String soundId,
+    required int delayMinutes,
+  }) async {}
 }
