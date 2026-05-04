@@ -25,6 +25,21 @@ class QuizChallengeBody extends StatelessWidget {
   final int? wrongPickIndex;
   final int? correctHighlightIndex;
 
+  String _wrongFeedbackMessage() {
+    if (!feedbackWrong || wrongPickIndex == null) {
+      return '틀렸습니다. 다시 선택해 주세요.';
+    }
+    final i = wrongPickIndex!;
+    if (i < 0 || i >= question.japaneseChoices.length) {
+      return '틀렸습니다. 다시 선택해 주세요.';
+    }
+    final jp = question.japaneseChoices[i].trim();
+    if (jp.isEmpty) {
+      return '틀렸습니다. 다시 선택해 주세요.';
+    }
+    return '「$jp」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -142,9 +157,9 @@ class QuizChallengeBody extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          '틀렸습니다. 다시 선택해 주세요.',
+                          _wrongFeedbackMessage(),
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.error,
                             fontWeight: FontWeight.w700,
                           ),
                           textAlign: TextAlign.center,
@@ -256,9 +271,9 @@ class QuizChallengeBody extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
-              '틀렸습니다. 다시 선택해 주세요.',
+              _wrongFeedbackMessage(),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white,
+                color: theme.colorScheme.error,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,

@@ -14,7 +14,10 @@ class AlarmNotificationScheduler {
   final FlutterLocalNotificationsPlugin _plugin;
 
   static const _channelDescription = 'WakeNihongo 알람 (알람 볼륨)';
-  static const _iosRepeatSlots = 5;
+  static const _iosMaxPendingNotifications = 64;
+  static const _iosSnoozeMaxCount = 10;
+  static const _iosRepeatSlots = _iosSnoozeMaxCount + 1;
+  static const _iosRepeatInterval = Duration(minutes: 5);
 
   static int notificationId(int alarmId, int weekday) => alarmId * 10 + weekday;
   static int _iosSlotNotificationId(int alarmId, int weekday, int slot) =>
@@ -110,9 +113,8 @@ class AlarmNotificationScheduler {
       presentBanner: true,
       presentList: true,
       sound: AlarmSoundIds.iosFileName(soundId),
-      // Capability/OS 상태에 따라 timeSensitive 전달이 무시/제약될 수 있어
-      // 기본 레벨(active)로 예약해 iOS 기본 알림 전달 안정성을 우선합니다.
-      interruptionLevel: InterruptionLevel.active,
+      // iOS 전달 우선순위를 높여 Focus 환경에서도 알림 도달 가능성을 높입니다.
+      interruptionLevel: InterruptionLevel.timeSensitive,
     );
     final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
@@ -121,12 +123,20 @@ class AlarmNotificationScheduler {
       'soundId': soundId,
     });
 
+    var iosBudget = 0;
+    if (Platform.isIOS) {
+      final pending = await _plugin.pendingNotificationRequests();
+      iosBudget = _iosMaxPendingNotifications - pending.length;
+      if (iosBudget <= 0) return;
+    }
+
     for (final weekday in alarm.weekdays) {
       final firstWhen = _nextInstanceOfWeekday(weekday, alarm.hour, alarm.minute);
       if (Platform.isIOS) {
-        // iOS는 Android처럼 OS 레벨 무한 루프 재생이 어려워, 같은 요일에 1분 간격 슬롯을 여러 개 예약합니다.
+        // iOS는 Android처럼 OS 레벨 무한 루프 재생이 어려워, 5분 간격 재알림 체인을 예약합니다.
         for (var slot = 0; slot < _iosRepeatSlots; slot++) {
-          final when = firstWhen.add(Duration(minutes: slot));
+          if (iosBudget <= 0) return;
+          final when = firstWhen.add(_iosRepeatInterval * slot);
           await _plugin.zonedSchedule(
             _iosSlotNotificationId(alarm.id, weekday, slot),
             'WakeNihongo',
@@ -138,6 +148,7 @@ class AlarmNotificationScheduler {
             matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
             payload: payload,
           );
+          iosBudget--;
         }
       } else {
         await _plugin.zonedSchedule(

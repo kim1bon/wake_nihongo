@@ -21,6 +21,12 @@ void main() {
       final q = QuizGenerator.generate(entries, random: Random(1));
       expect(q, isNotNull);
       expect(q!.koreanChoices.length, 4);
+      expect(q.japaneseChoices.length, q.koreanChoices.length);
+      for (var i = 0; i < q.koreanChoices.length; i++) {
+        final kor = q.koreanChoices[i];
+        final idx = int.parse(kor.substring(1));
+        expect(q.japaneseChoices[i], 'w$idx');
+      }
       expect(q.type, '단어');
       expect(q.category, 'A');
       for (final k in q.koreanChoices) {
@@ -58,6 +64,7 @@ void main() {
       final q = QuizGenerator.generate(entries, random: Random(0));
       expect(q, isNotNull);
       expect(q!.koreanChoices.length, 2);
+      expect(q.japaneseChoices.length, 2);
     });
   });
 

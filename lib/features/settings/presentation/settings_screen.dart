@@ -111,6 +111,39 @@ class SettingsScreen extends ConsumerWidget {
                     }
                   },
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('iOS 알림 안내'),
+                  subtitle: const Text(
+                    '무음 스위치/집중 모드에서는 소리가 제한될 수 있습니다.',
+                  ),
+                  onTap: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('iOS 알림 설정 가이드'),
+                        content: const Text(
+                          '아래 설정을 확인해 주세요.\n\n'
+                          '1) 설정 > 알림 > Wake Nihongo\n'
+                          ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
+                          ' - 시간 민감 알림(Time Sensitive) ON\n\n'
+                          '2) 설정 > 집중 모드(Focus)\n'
+                          ' - Wake Nihongo 알림 허용\n\n'
+                          '3) 설정 > 사운드 및 햅틱\n'
+                          ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
+                          '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 100% 강제할 수는 없습니다.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('확인'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

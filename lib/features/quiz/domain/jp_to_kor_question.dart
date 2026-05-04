@@ -3,13 +3,20 @@ class JpToKorQuestion {
   const JpToKorQuestion({
     required this.promptJp,
     required this.koreanChoices,
+    required this.japaneseChoices,
     required this.correctChoiceIndex,
     required this.category,
     required this.type,
-  });
+  }) : assert(
+          japaneseChoices.length == koreanChoices.length,
+          'japaneseChoices must align with koreanChoices',
+        );
 
   final String promptJp;
   final List<String> koreanChoices;
+
+  /// [koreanChoices]와 같은 순서·길이. 각 선택지 한국어에 대응하는 일본어 표기.
+  final List<String> japaneseChoices;
   final int correctChoiceIndex;
   final String category;
   final String type;

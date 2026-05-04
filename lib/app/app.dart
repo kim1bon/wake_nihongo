@@ -54,6 +54,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
 
     await AlarmRingCoordinator.handleAlarmTriggerWhenNavigatorReady(
       soundId: sid,
+      alarmId: alarmId,
       maxRetry: 8,
       retryInterval: const Duration(milliseconds: 140),
     );
@@ -82,8 +83,13 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       final pending = PendingAlarmLaunch.notificationResponse;
       PendingAlarmLaunch.notificationResponse = null;
       if (pending != null) {
-        unawaited(AlarmRingCoordinator.handleNotificationResponse(pending));
+        unawaited(
+          AlarmRingCoordinator.handleNotificationResponseWhenNavigatorReady(
+            pending,
+          ),
+        );
       }
+      unawaited(AlarmRingCoordinator.restorePendingAlarmIfAny());
       if (Platform.isAndroid) {
         final map = await AlarmNativeAndroid.takePendingAlarmLaunch();
         if (map != null) {
@@ -115,7 +121,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
 
   void _startIosForegroundAlarmWatcher() {
     _iosForegroundAlarmTimer ??= Timer.periodic(
-      const Duration(seconds: 15),
+      const Duration(seconds: 1),
       (_) => unawaited(_checkAndFireIosForegroundAlarms()),
     );
     unawaited(_checkAndFireIosForegroundAlarms());
@@ -148,7 +154,12 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       if (_iosForegroundFiredAt.containsKey(fireKey)) continue;
 
       _iosForegroundFiredAt[fireKey] = now;
-      unawaited(AlarmRingCoordinator.handleAlarmTrigger(soundId: alarm.soundId));
+      unawaited(
+        AlarmRingCoordinator.handleAlarmTrigger(
+          soundId: alarm.soundId,
+          alarmId: alarm.id,
+        ),
+      );
     }
 
     final cutoff = now.subtract(const Duration(hours: 2));

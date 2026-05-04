@@ -80,9 +80,18 @@ class QuizGenerator {
       final correctIndex = choices.indexOf(correctKor);
       if (correctIndex < 0) continue;
 
+      final japaneseChoices = choices.map((kor) {
+        final entry = pool.firstWhere(
+          (e) => e.kor.trim() == kor,
+          orElse: () => correctEntry,
+        );
+        return entry.jp.trim();
+      }).toList();
+
       return JpToKorQuestion(
         promptJp: correctEntry.jp.trim(),
         koreanChoices: choices,
+        japaneseChoices: japaneseChoices,
         correctChoiceIndex: correctIndex,
         category: correctEntry.category.trim(),
         type: correctEntry.type.trim(),

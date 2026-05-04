@@ -31,7 +31,11 @@ class AppBootstrap {
     final scheduler = AlarmNotificationScheduler(notifications);
     await scheduler.init(
       onDidReceiveNotificationResponse: (response) {
-        unawaited(AlarmRingCoordinator.handleNotificationResponse(response));
+        unawaited(
+          AlarmRingCoordinator.handleNotificationResponseWhenNavigatorReady(
+            response,
+          ),
+        );
       },
     );
 
