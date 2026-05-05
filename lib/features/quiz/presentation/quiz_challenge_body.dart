@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/theme.dart';
-import '../domain/jp_to_kor_question.dart';
+import '../domain/quiz_challenge_question.dart';
+import '../domain/quiz_prompt_mode.dart';
 
-/// 일본어 제목 + 한국어 선택 버튼.
+/// 질문(상단) + 객관식 선택 버튼.
 class QuizChallengeBody extends StatelessWidget {
   const QuizChallengeBody({
     super.key,
@@ -20,7 +21,7 @@ class QuizChallengeBody extends StatelessWidget {
     this.correctHighlightIndex,
   });
 
-  final JpToKorQuestion question;
+  final QuizChallengeQuestion question;
   final void Function(int index) onPickIndex;
   final bool useAlarmStyleLayout;
   final String? thumbnailAssetPath;
@@ -28,13 +29,13 @@ class QuizChallengeBody extends StatelessWidget {
   final int? wrongPickIndex;
   final int? correctHighlightIndex;
 
-  Widget _buildPromptTexts(ThemeData theme, JpToKorQuestion q) {
-    final h = q.promptHiragana;
+  Widget _buildPromptTexts(ThemeData theme, QuizChallengeQuestion q) {
+    final h = q.promptSecondary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          q.promptJp,
+          q.promptPrimary,
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -58,20 +59,76 @@ class QuizChallengeBody extends StatelessWidget {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
     final i = wrongPickIndex!;
-    if (i < 0 || i >= question.japaneseChoices.length) {
+    if (i < 0 || i >= question.wrongPickQuotes.length) {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
-    final jp = question.japaneseChoices[i].trim();
-    if (jp.isEmpty) {
+    final quoted = question.wrongPickQuotes[i].trim();
+    if (quoted.isEmpty) {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
-    return '「$jp」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
+    return '「$quoted」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
+  }
+
+  Widget _choiceButtonChild(
+    ThemeData theme,
+    int index,
+    String label,
+    Color foreground,
+  ) {
+    final raw = index < question.choiceKorPronunciations.length
+        ? question.choiceKorPronunciations[index]
+        : null;
+    final sub = raw?.trim();
+    if (sub == null || sub.isEmpty) {
+      return Text(
+        label,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: foreground,
+        ),
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: foreground,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          sub,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: foreground.withValues(alpha: 0.88),
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = Theme.of(context);
+    final challengeTheme = question.mode == QuizPromptMode.jpToKor
+        ? AppTheme.japanesePrimary(baseTheme)
+        : baseTheme;
+
     return Theme(
-      data: AppTheme.japanesePrimary(Theme.of(context)),
+      data: challengeTheme,
       child: Builder(
         builder: (context) {
           final theme = Theme.of(context);
@@ -79,6 +136,15 @@ class QuizChallengeBody extends StatelessWidget {
           final typeLabel = isSentence
               ? '2지선다 · ${question.type}'
               : '4지선다 · ${question.type}';
+          /// sentence(2지): 1×2 세로 스택. 그 외 4지: 2×2.
+          final choiceGridCrossAxisCount = isSentence ? 1 : 2;
+          /// 한→일은 발음 보조 줄 때문에 셀을 조금 더 높게.
+          final choiceGridChildAspectRatio = switch ((isSentence, question.mode)) {
+            (true, QuizPromptMode.korToJp) => 2.85,
+            (true, _) => 3.4,
+            (false, QuizPromptMode.korToJp) => 1.95,
+            (false, _) => 2.3,
+          };
 
           if (useAlarmStyleLayout) {
             return LayoutBuilder(
@@ -131,13 +197,6 @@ class QuizChallengeBody extends StatelessWidget {
                                   style: theme.textTheme.labelLarge?.copyWith(
                                     color: theme.colorScheme.secondary,
                                     fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  '이 단어의 뜻을 골라주세요',
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
@@ -207,17 +266,17 @@ class QuizChallengeBody extends StatelessWidget {
                             ),
                           GridView.builder(
                             shrinkWrap: true,
-                            itemCount: question.koreanChoices.length,
+                            itemCount: question.choices.length,
                             physics: const NeverScrollableScrollPhysics(),
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 10,
-                                  crossAxisSpacing: 10,
-                                  childAspectRatio: 2.3,
-                                ),
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: choiceGridCrossAxisCount,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: choiceGridChildAspectRatio,
+                            ),
                             itemBuilder: (context, i) {
-                              final label = question.koreanChoices[i];
+                              final label = question.choices[i];
                               final showCorrectFill =
                                   correctHighlightIndex != null &&
                                   correctHighlightIndex == i;
@@ -250,14 +309,11 @@ class QuizChallengeBody extends StatelessWidget {
                                   ),
                                 ),
                                 onPressed: () => onPickIndex(i),
-                                child: Text(
+                                child: _choiceButtonChild(
+                                  theme,
+                                  i,
                                   label,
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: foreground,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
+                                  foreground,
                                 ),
                               );
                             },
@@ -295,13 +351,6 @@ class QuizChallengeBody extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      '이 단어의 뜻을 골라주세요',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
                     _buildPromptTexts(theme, question),
                   ],
                 ),
@@ -321,16 +370,16 @@ class QuizChallengeBody extends StatelessWidget {
                 ),
               GridView.builder(
                 shrinkWrap: true,
-                itemCount: question.koreanChoices.length,
+                itemCount: question.choices.length,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: choiceGridCrossAxisCount,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 2.3,
+                  childAspectRatio: choiceGridChildAspectRatio,
                 ),
                 itemBuilder: (context, i) {
-                  final label = question.koreanChoices[i];
+                  final label = question.choices[i];
                   final showCorrectFill =
                       correctHighlightIndex != null &&
                       correctHighlightIndex == i;
@@ -363,14 +412,11 @@ class QuizChallengeBody extends StatelessWidget {
                       ),
                     ),
                     onPressed: () => onPickIndex(i),
-                    child: Text(
+                    child: _choiceButtonChild(
+                      theme,
+                      i,
                       label,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: foreground,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
+                      foreground,
                     ),
                   );
                 },

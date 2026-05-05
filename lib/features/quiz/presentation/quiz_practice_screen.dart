@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../domain/jp_to_kor_question.dart';
+import '../../settings/presentation/quiz_prompt_mode_notifier.dart';
+import '../domain/quiz_challenge_question.dart';
 import '../domain/quiz_entry.dart';
 import '../domain/quiz_generator.dart';
+import '../domain/quiz_prompt_mode.dart';
 import 'quiz_challenge_body.dart';
 import 'quiz_providers.dart';
 
@@ -16,6 +18,7 @@ class QuizPracticeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncEntries = ref.watch(quizFilteredEntriesProvider);
+    final asyncMode = ref.watch(quizPromptModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('일본어 퀴즈')),
@@ -40,16 +43,24 @@ class QuizPracticeScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (entries) => _QuizPracticeLoaded(entries: entries),
+        data: (entries) => asyncMode.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('설정을 불러오지 못했습니다.\n$e')),
+          data: (mode) => _QuizPracticeLoaded(entries: entries, mode: mode),
+        ),
       ),
     );
   }
 }
 
 class _QuizPracticeLoaded extends StatefulWidget {
-  const _QuizPracticeLoaded({required this.entries});
+  const _QuizPracticeLoaded({
+    required this.entries,
+    required this.mode,
+  });
 
   final List<QuizEntry> entries;
+  final QuizPromptMode mode;
 
   @override
   State<_QuizPracticeLoaded> createState() => _QuizPracticeLoadedState();
@@ -57,7 +68,7 @@ class _QuizPracticeLoaded extends StatefulWidget {
 
 class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
   final _random = Random();
-  JpToKorQuestion? _question;
+  QuizChallengeQuestion? _question;
   bool _wrong = false;
   int? _wrongPickIndex;
   int? _correctPickIndex;
@@ -65,7 +76,19 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
   @override
   void initState() {
     super.initState();
-    _question = QuizGenerator.generate(widget.entries, random: _random);
+    _question = QuizGenerator.generate(
+      widget.entries,
+      random: _random,
+      mode: widget.mode,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuizPracticeLoaded oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mode != widget.mode || oldWidget.entries != widget.entries) {
+      _rollQuestion();
+    }
   }
 
   void _rollQuestion() {
@@ -73,7 +96,11 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
       _wrong = false;
       _wrongPickIndex = null;
       _correctPickIndex = null;
-      _question = QuizGenerator.generate(widget.entries, random: _random);
+      _question = QuizGenerator.generate(
+        widget.entries,
+        random: _random,
+        mode: widget.mode,
+      );
     });
   }
 
@@ -91,8 +118,10 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
                 child: Center(
                   child: Text(
                     '출제 가능한 문제가 없습니다.\n'
-                    '같은 카테고리·같은 타입 안에서 서로 다른 한국어 뜻이 '
-                    '충분해야 합니다.\n(sentence: 2개 이상, 그 외: 4개 이상)',
+                    '같은 카테고리·같은 타입 안에서 서로 다른 보기가 '
+                    '충분해야 합니다.\n'
+                    '(한→일: 서로 다른 일본어, 일→한: 서로 다른 한국어)\n'
+                    'sentence는 2지, 그 외는 4지입니다.',
                     textAlign: TextAlign.center,
                   ),
                 ),

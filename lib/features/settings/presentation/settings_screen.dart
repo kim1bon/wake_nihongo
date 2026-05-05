@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../alarm/presentation/alarm_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
+import '../../quiz/domain/quiz_prompt_mode.dart';
 import '../../quiz/presentation/quiz_providers.dart';
 import 'alarm_quiz_question_count_notifier.dart';
 import 'quiz_alarm_categories_notifier.dart';
 import 'quiz_alarm_category_levels_notifier.dart';
+import 'quiz_prompt_mode_notifier.dart';
 
 List<String> _sortedCategoryNames(List<QuizEntry> entries) {
   final s = entries
@@ -147,6 +149,7 @@ class SettingsScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(quizAlarmEnabledCategoriesProvider);
     final categoryLevelsAsync = ref.watch(quizAlarmCategoryLevelsProvider);
     final alarmQuizCountAsync = ref.watch(alarmQuizQuestionCountProvider);
+    final quizPromptModeAsync = ref.watch(quizPromptModeProvider);
     final localQuizVersionAsync = ref.watch(localQuizVersionProvider);
     final remoteQuizVersionAsync = ref.watch(remoteQuizVersionProvider);
 
@@ -250,6 +253,59 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: quizPromptModeAsync.when(
+                loading: () => const ListTile(
+                  title: Text('문제 방식'),
+                  subtitle: Text('불러오는 중…'),
+                ),
+                error: (e, _) => ListTile(
+                  title: const Text('문제 방식'),
+                  subtitle: Text('불러오지 못했습니다.\n$e'),
+                ),
+                data: (mode) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      '문제 방식',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '연습 퀴즈와 알람 해제 퀴즈 모두 이 설정을 따릅니다.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<QuizPromptMode>(
+                      segments: const [
+                        ButtonSegment<QuizPromptMode>(
+                          value: QuizPromptMode.korToJp,
+                          label: Text('한국어 → 일본어'),
+                        ),
+                        ButtonSegment<QuizPromptMode>(
+                          value: QuizPromptMode.jpToKor,
+                          label: Text('일본어 → 한국어'),
+                        ),
+                      ],
+                      selected: {mode},
+                      onSelectionChanged: (next) {
+                        ref
+                            .read(quizPromptModeProvider.notifier)
+                            .setMode(next.first);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Padding(

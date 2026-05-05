@@ -1,9 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wake_nihongo/features/quiz/data/quiz_sheet_parser.dart';
 import 'package:wake_nihongo/features/quiz/domain/quiz_entry.dart';
 import 'package:wake_nihongo/features/quiz/domain/quiz_generator.dart';
-import 'package:wake_nihongo/features/quiz/data/quiz_sheet_parser.dart';
+import 'package:wake_nihongo/features/quiz/domain/quiz_prompt_mode.dart';
 
 QuizEntry _e({
   required String id,
@@ -31,7 +32,7 @@ QuizEntry _e({
 
 void main() {
   group('QuizGenerator', () {
-    test('sentence가 아니면 4지선다, 같은 카테고리·타입의 한국어만 사용', () {
+    test('일→한: sentence가 아니면 4지선다, 같은 카테고리·타입의 한국어만 사용', () {
       final entries = List<QuizEntry>.generate(
         5,
         (i) => _e(
@@ -42,19 +43,74 @@ void main() {
           kor: 'k$i',
         ),
       );
-      final q = QuizGenerator.generate(entries, random: Random(1));
+      final q = QuizGenerator.generate(
+        entries,
+        random: Random(1),
+        mode: QuizPromptMode.jpToKor,
+      );
       expect(q, isNotNull);
-      expect(q!.koreanChoices.length, 4);
-      expect(q.japaneseChoices.length, q.koreanChoices.length);
-      for (var i = 0; i < q.koreanChoices.length; i++) {
-        final kor = q.koreanChoices[i];
+      expect(q!.choices.length, 4);
+      expect(q.wrongPickQuotes.length, q.choices.length);
+      expect(q.mode, QuizPromptMode.jpToKor);
+      for (var i = 0; i < q.choices.length; i++) {
+        final kor = q.choices[i];
         final idx = int.parse(kor.substring(1));
-        expect(q.japaneseChoices[i], 'w$idx');
+        expect(q.wrongPickQuotes[i], 'w$idx');
       }
       expect(q.type, '단어');
       expect(q.category, 'A');
-      for (final k in q.koreanChoices) {
+      for (final k in q.choices) {
         expect(k.startsWith('k'), isTrue);
+      }
+    });
+
+    test('한→일: 4지선다이면 일본어 보기', () {
+      final entries = List<QuizEntry>.generate(
+        5,
+        (i) => _e(
+          id: '$i',
+          category: 'A',
+          type: '단어',
+          jp: 'w$i',
+          kor: 'k$i',
+        ),
+      );
+      final q = QuizGenerator.generate(
+        entries,
+        random: Random(2),
+        mode: QuizPromptMode.korToJp,
+      );
+      expect(q, isNotNull);
+      expect(q!.choices.length, 4);
+      expect(q.choiceKorPronunciations.length, 4);
+      expect(q.mode, QuizPromptMode.korToJp);
+      expect(q.promptPrimary.startsWith('k'), isTrue);
+      for (final c in q.choices) {
+        expect(c.startsWith('w'), isTrue);
+      }
+    });
+
+    test('한→일: kor_pronunciation이 선택지 보조 줄과 매칭된다', () {
+      final entries = List<QuizEntry>.generate(
+        5,
+        (i) => _e(
+          id: '$i',
+          category: 'A',
+          type: '단어',
+          jp: 'w$i',
+          kor: 'k$i',
+          korPronunciation: '발음$i',
+        ),
+      );
+      final q = QuizGenerator.generate(
+        entries,
+        random: Random(2),
+        mode: QuizPromptMode.korToJp,
+      );
+      expect(q, isNotNull);
+      for (var i = 0; i < q!.choices.length; i++) {
+        final idx = int.parse(q.choices[i].substring(1));
+        expect(q.choiceKorPronunciations[i], '발음$idx');
       }
     });
 
@@ -84,19 +140,23 @@ void main() {
       expect(filtered.where((e) => e.category == 'D').single.level, '1');
     });
 
-    test('sentence 타입은 2지선다', () {
+    test('일→한 sentence 타입은 2지선다', () {
       final entries = [
         _e(id: '0', category: 'A', type: 'sentence', jp: 'a', kor: 'x'),
         _e(id: '1', category: 'A', type: 'sentence', jp: 'b', kor: 'y'),
       ];
-      final q = QuizGenerator.generate(entries, random: Random(0));
+      final q = QuizGenerator.generate(
+        entries,
+        random: Random(0),
+        mode: QuizPromptMode.jpToKor,
+      );
       expect(q, isNotNull);
-      expect(q!.koreanChoices.length, 2);
-      expect(q.japaneseChoices.length, 2);
+      expect(q!.choices.length, 2);
+      expect(q.wrongPickQuotes.length, 2);
       expect(q.type.toLowerCase(), 'sentence');
     });
 
-    test('hiragana_display이면 promptHiragana가 채워진다', () {
+    test('일→한 hiragana_display이면 promptSecondary가 채워진다', () {
       final entries = List<QuizEntry>.generate(
         5,
         (i) => _e(
@@ -109,10 +169,14 @@ void main() {
           hiraganaDisplay: true,
         ),
       );
-      final q = QuizGenerator.generate(entries, random: Random(0));
+      final q = QuizGenerator.generate(
+        entries,
+        random: Random(0),
+        mode: QuizPromptMode.jpToKor,
+      );
       expect(q, isNotNull);
-      expect(q!.promptHiragana, isNotNull);
-      expect(q.promptHiragana!.isNotEmpty, isTrue);
+      expect(q!.promptSecondary, isNotNull);
+      expect(q.promptSecondary!.isNotEmpty, isTrue);
     });
   });
 

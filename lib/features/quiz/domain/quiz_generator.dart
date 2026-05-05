@@ -1,10 +1,13 @@
 import 'dart:math';
 
-import 'jp_to_kor_question.dart';
+import 'quiz_challenge_question.dart';
 import 'quiz_entry.dart';
+import 'quiz_prompt_mode.dart';
 
-/// 규칙: 일본어 보기 → 한국어 선택. `type`이 `sentence`면 2지선다, 그 외는 4지선다.
-/// 오답은 같은 `category` + 같은 `type` 안에서만 채움.
+/// `type`이 `sentence`면 2지선다, 그 외는 4지선다.
+/// 오답 보기는 같은 `category` + 같은 `type` 안에서만 채웁니다.
+/// - 일→한: 서로 다른 [QuizEntry.kor] 가 충분해야 함.
+/// - 한→일: 서로 다른 [QuizEntry.jp] 가 충분해야 함.
 class QuizGenerator {
   QuizGenerator._();
 
@@ -43,11 +46,18 @@ class QuizGenerator {
   }
 
   /// 출제 가능한 그룹이 없거나 무작위 실패 시 `null`.
-  static JpToKorQuestion? generate(
+  static QuizChallengeQuestion? generate(
     List<QuizEntry> entries, {
     Random? random,
+    QuizPromptMode mode = QuizPromptMode.korToJp,
   }) {
-    final r = random ?? Random();
+    return switch (mode) {
+      QuizPromptMode.jpToKor => _generateJpToKor(entries, random: random),
+      QuizPromptMode.korToJp => _generateKorToJp(entries, random: random),
+    };
+  }
+
+  static Map<String, List<QuizEntry>> _groupEntries(List<QuizEntry> entries) {
     final groups = <String, List<QuizEntry>>{};
     for (final e in entries) {
       final jp = e.jp.trim();
@@ -56,6 +66,15 @@ class QuizGenerator {
       final key = '${e.category.trim()}\x1f${e.type.trim()}';
       groups.putIfAbsent(key, () => []).add(e);
     }
+    return groups;
+  }
+
+  static QuizChallengeQuestion? _generateJpToKor(
+    List<QuizEntry> entries, {
+    Random? random,
+  }) {
+    final r = random ?? Random();
+    final groups = _groupEntries(entries);
 
     final viableKeys = groups.keys.where((k) {
       final list = groups[k]!;
@@ -90,7 +109,7 @@ class QuizGenerator {
       final correctIndex = choices.indexOf(correctKor);
       if (correctIndex < 0) continue;
 
-      final japaneseChoices = choices.map((kor) {
+      final wrongPickQuotes = choices.map((kor) {
         final entry = pool.firstWhere(
           (e) => e.kor.trim() == kor,
           orElse: () => correctEntry,
@@ -101,14 +120,88 @@ class QuizGenerator {
       final showHira = correctEntry.hiraganaDisplay &&
           correctEntry.hiragana.trim().isNotEmpty;
 
-      return JpToKorQuestion(
-        promptJp: correctEntry.jp.trim(),
-        promptHiragana: showHira ? correctEntry.hiragana.trim() : null,
-        koreanChoices: choices,
-        japaneseChoices: japaneseChoices,
+      return QuizChallengeQuestion(
+        mode: QuizPromptMode.jpToKor,
+        promptPrimary: correctEntry.jp.trim(),
+        promptSecondary: showHira ? correctEntry.hiragana.trim() : null,
+        choices: choices,
+        wrongPickQuotes: wrongPickQuotes,
+        choiceKorPronunciations: List<String?>.filled(choices.length, null),
         correctChoiceIndex: correctIndex,
         category: correctEntry.category.trim(),
-        type: correctEntry.type.trim(),
+        type: type,
+      );
+    }
+    return null;
+  }
+
+  static QuizChallengeQuestion? _generateKorToJp(
+    List<QuizEntry> entries, {
+    Random? random,
+  }) {
+    final r = random ?? Random();
+    final groups = _groupEntries(entries);
+
+    final viableKeys = groups.keys.where((k) {
+      final list = groups[k]!;
+      final t = list.first.type.trim();
+      final n = choiceCountForType(t);
+      final distinctJp = list.map((e) => e.jp.trim()).toSet();
+      return distinctJp.length >= n;
+    }).toList();
+
+    if (viableKeys.isEmpty) return null;
+
+    viableKeys.shuffle(r);
+    for (final key in viableKeys) {
+      final pool = groups[key]!;
+      final type = pool.first.type.trim();
+      final n = choiceCountForType(type);
+
+      final correctEntry = pool[r.nextInt(pool.length)];
+      final correctJp = correctEntry.jp.trim();
+
+      final wrongJps = pool
+          .map((e) => e.jp.trim())
+          .where((j) => j != correctJp)
+          .toSet()
+          .toList()
+        ..shuffle(r);
+
+      if (wrongJps.length < n - 1) continue;
+
+      final selectedWrong = wrongJps.take(n - 1).toList();
+      final choices = <String>[correctJp, ...selectedWrong]..shuffle(r);
+      final correctIndex = choices.indexOf(correctJp);
+      if (correctIndex < 0) continue;
+
+      final wrongPickQuotes = choices.map((jp) {
+        final entry = pool.firstWhere(
+          (e) => e.jp.trim() == jp,
+          orElse: () => correctEntry,
+        );
+        return entry.jp.trim();
+      }).toList();
+
+      final choiceKorPronunciations = choices.map((jp) {
+        final entry = pool.firstWhere(
+          (e) => e.jp.trim() == jp,
+          orElse: () => correctEntry,
+        );
+        final p = entry.korPronunciation.trim();
+        return p.isEmpty ? null : p;
+      }).toList();
+
+      return QuizChallengeQuestion(
+        mode: QuizPromptMode.korToJp,
+        promptPrimary: correctEntry.kor.trim(),
+        promptSecondary: null,
+        choices: choices,
+        wrongPickQuotes: wrongPickQuotes,
+        choiceKorPronunciations: choiceKorPronunciations,
+        correctChoiceIndex: correctIndex,
+        category: correctEntry.category.trim(),
+        type: type,
       );
     }
     return null;

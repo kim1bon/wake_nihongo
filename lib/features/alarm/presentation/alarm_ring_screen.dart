@@ -13,7 +13,8 @@ import '../data/alarm_reschedule_session_store.dart';
 import '../domain/alarm.dart';
 import 'alarm_providers.dart';
 import '../../settings/presentation/alarm_quiz_question_count_notifier.dart';
-import '../../quiz/domain/jp_to_kor_question.dart';
+import '../../settings/presentation/quiz_prompt_mode_notifier.dart';
+import '../../quiz/domain/quiz_challenge_question.dart';
 import '../../quiz/domain/quiz_generator.dart';
 import '../../quiz/presentation/quiz_challenge_body.dart';
 import '../../quiz/presentation/quiz_providers.dart';
@@ -42,7 +43,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
 
   bool _loadingQuiz = true;
   String? _loadError;
-  JpToKorQuestion? _question;
+  QuizChallengeQuestion? _question;
   bool _quizSolved = false;
   int _requiredQuestions = AlarmQuizQuestionCountNotifier.defaultCount;
   int _correctSoFar = 0;
@@ -150,8 +151,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
         AlarmQuizQuestionCountNotifier.maxCount,
       );
       final filtered = await ref.read(quizFilteredEntriesProvider.future);
+      final mode = await ref.read(quizPromptModeProvider.future);
       if (!mounted) return;
-      final q = QuizGenerator.generate(filtered, random: _random);
+      final q = QuizGenerator.generate(filtered, random: _random, mode: mode);
       setState(() {
         _loadingQuiz = false;
         _question = q;
@@ -183,8 +185,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   Future<void> _drawNextQuestion() async {
     try {
       final filtered = await ref.read(quizFilteredEntriesProvider.future);
+      final mode = await ref.read(quizPromptModeProvider.future);
       if (!mounted) return;
-      final q = QuizGenerator.generate(filtered, random: _random);
+      final q = QuizGenerator.generate(filtered, random: _random, mode: mode);
       if (!mounted) return;
       setState(() {
         _question = q;
