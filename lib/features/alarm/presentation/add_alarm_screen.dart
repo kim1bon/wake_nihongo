@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -84,8 +86,26 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
 
   bool get _everyDaySelected => AlarmWeekdays.isEveryDay(_weekdays);
 
+  int _to12Hour(int hour24) {
+    final h = hour24 % 12;
+    return h == 0 ? 12 : h;
+  }
+
+  int _to24Hour({required int hour12, required bool isPm}) {
+    if (isPm) return hour12 == 12 ? 12 : hour12 + 12;
+    return hour12 == 12 ? 0 : hour12;
+  }
+
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
+    final picked = await showDialog<TimeOfDay>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _JapaneseDialTimePickerDialog(
+        initial: _time,
+        to12Hour: _to12Hour,
+        to24Hour: _to24Hour,
+      ),
+    );
     if (picked != null) {
       setState(() => _time = picked);
     }
@@ -349,11 +369,74 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ListTile(
-            title: const Text('시간'),
-            subtitle: Text(timeLabel),
-            trailing: const Icon(Icons.schedule),
-            onTap: _pickTime,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: _pickTime,
+              child: Ink(
+                decoration: BoxDecoration(
+                  color: AppPalette.beigeContainer,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppPalette.green.withValues(alpha: 0.35),
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppPalette.green.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.watch_later_outlined,
+                        color: AppPalette.green,
+                        size: 21,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '시간',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: AppPalette.navy.withValues(alpha: 0.88),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            timeLabel,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: AppPalette.navy,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '時間 / じかん',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppPalette.onSurfaceVariantTone,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppPalette.navy.withValues(alpha: 0.6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 8),
           ListTile(
@@ -546,5 +629,525 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
         ),
       ),
     );
+  }
+}
+
+enum _DialSelectMode { hour, minute }
+enum _TimeInputMode { dial, keyboard }
+
+class _JapaneseDialTimePickerDialog extends StatefulWidget {
+  const _JapaneseDialTimePickerDialog({
+    required this.initial,
+    required this.to12Hour,
+    required this.to24Hour,
+  });
+
+  final TimeOfDay initial;
+  final int Function(int hour24) to12Hour;
+  final int Function({required int hour12, required bool isPm}) to24Hour;
+
+  @override
+  State<_JapaneseDialTimePickerDialog> createState() =>
+      _JapaneseDialTimePickerDialogState();
+}
+
+class _JapaneseDialTimePickerDialogState
+    extends State<_JapaneseDialTimePickerDialog> {
+  late int _hour12;
+  late int _minute;
+  late bool _isPm;
+  _DialSelectMode _mode = _DialSelectMode.hour;
+  _TimeInputMode _inputMode = _TimeInputMode.dial;
+  late final TextEditingController _hourController;
+  late final TextEditingController _minuteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hour12 = widget.to12Hour(widget.initial.hour);
+    _minute = widget.initial.minute;
+    _isPm = widget.initial.hour >= 12;
+    _hourController = TextEditingController(text: _hour12.toString().padLeft(2, '0'));
+    _minuteController =
+        TextEditingController(text: _minute.toString().padLeft(2, '0'));
+  }
+
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    super.dispose();
+  }
+
+  String get _preview =>
+      '${_isPm ? '오후' : '오전'} $_hour12:${_minute.toString().padLeft(2, '0')}';
+
+  void _syncTextFields() {
+    final hourText = _hour12.toString().padLeft(2, '0');
+    final minuteText = _minute.toString().padLeft(2, '0');
+    if (_hourController.text != hourText) _hourController.text = hourText;
+    if (_minuteController.text != minuteText) _minuteController.text = minuteText;
+  }
+
+  void _onHourTextChanged(String raw) {
+    final parsed = int.tryParse(raw);
+    if (parsed == null) return;
+    final clamped = parsed.clamp(1, 12);
+    if (clamped != _hour12) {
+      setState(() => _hour12 = clamped);
+    }
+  }
+
+  void _onMinuteTextChanged(String raw) {
+    final parsed = int.tryParse(raw);
+    if (parsed == null) return;
+    final clamped = parsed.clamp(0, 59);
+    if (clamped != _minute) {
+      setState(() => _minute = clamped);
+    }
+  }
+
+  Widget _buildKeyboardInput(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      decoration: BoxDecoration(
+        color: AppPalette.beigeContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppPalette.green.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _hourController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              maxLength: 2,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                counterText: '',
+                labelText: '시 (1~12)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: _onHourTextChanged,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              ':',
+              style: textTheme.headlineSmall?.copyWith(
+                color: AppPalette.navy,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _minuteController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              maxLength: 2,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                counterText: '',
+                labelText: '분 (0~59)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: _onMinuteTextChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeToken({
+    required BuildContext context,
+    required String text,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          height: 74,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? AppPalette.green.withValues(alpha: 0.16)
+                : AppPalette.beigeContainer,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? AppPalette.green.withValues(alpha: 0.75)
+                  : AppPalette.navy.withValues(alpha: 0.12),
+              width: selected ? 1.6 : 1.0,
+            ),
+          ),
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: AppPalette.navy,
+              fontWeight: FontWeight.w800,
+              height: 1.0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeridiemButton({
+    required BuildContext context,
+    required String text,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? AppPalette.green.withValues(alpha: 0.16)
+                : AppPalette.beigeContainer,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? AppPalette.green.withValues(alpha: 0.75)
+                  : AppPalette.navy.withValues(alpha: 0.12),
+            ),
+          ),
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: AppPalette.navy,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onDialChanged(double angle) {
+    setState(() {
+      if (_mode == _DialSelectMode.hour) {
+        var index = (angle / (2 * math.pi) * 12).round() % 12;
+        _hour12 = index == 0 ? 12 : index;
+      } else {
+        _minute = ((angle / (2 * math.pi) * 60).round() % 60);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final dialogContentWidth = math.min(340.0, screenWidth - 56);
+    final dialSize = math.min(250.0, screenHeight * 0.30);
+    _syncTextFields();
+    return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      backgroundColor: AppPalette.beigeSoft,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: AppPalette.green.withValues(alpha: 0.26)),
+      ),
+      titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+      contentPadding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+      actionsPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      title: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppPalette.green.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Icon(
+              Icons.access_time_filled_rounded,
+              color: AppPalette.green,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '時間 선택',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: AppPalette.navy,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: dialogContentWidth,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Row(
+                      children: [
+                        _buildTimeToken(
+                          context: context,
+                          text: _hour12.toString().padLeft(2, '0'),
+                          selected: _mode == _DialSelectMode.hour,
+                          onTap: () =>
+                              setState(() => _mode = _DialSelectMode.hour),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            ':',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: AppPalette.navy.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        _buildTimeToken(
+                          context: context,
+                          text: _minute.toString().padLeft(2, '0'),
+                          selected: _mode == _DialSelectMode.minute,
+                          onTap: () =>
+                              setState(() => _mode = _DialSelectMode.minute),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 74,
+                      child: Column(
+                        children: [
+                          _buildMeridiemButton(
+                            context: context,
+                            text: '오전',
+                            selected: !_isPm,
+                            onTap: () => setState(() => _isPm = false),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildMeridiemButton(
+                            context: context,
+                            text: '오후',
+                            selected: _isPm,
+                            onTap: () => setState(() => _isPm = true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _preview,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: AppPalette.navy.withValues(alpha: 0.68),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (_inputMode == _TimeInputMode.dial)
+                _JapaneseDial(
+                  mode: _mode,
+                  hour12: _hour12,
+                  minute: _minute,
+                  dialSize: dialSize,
+                  onChanged: _onDialChanged,
+                )
+              else
+                _buildKeyboardInput(context),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: _inputMode == _TimeInputMode.dial ? '키보드 입력' : '다이얼 입력',
+              onPressed: () {
+                setState(() {
+                  _inputMode = _inputMode == _TimeInputMode.dial
+                      ? _TimeInputMode.keyboard
+                      : _TimeInputMode.dial;
+                });
+              },
+              icon: Icon(
+                _inputMode == _TimeInputMode.dial
+                    ? Icons.keyboard_outlined
+                    : Icons.watch_later_outlined,
+                color: AppPalette.green,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppPalette.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+              onPressed: () {
+                final hour24 = widget.to24Hour(hour12: _hour12, isPm: _isPm);
+                Navigator.of(context)
+                    .pop(TimeOfDay(hour: hour24, minute: _minute));
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _JapaneseDial extends StatelessWidget {
+  const _JapaneseDial({
+    required this.mode,
+    required this.hour12,
+    required this.minute,
+    required this.dialSize,
+    required this.onChanged,
+  });
+
+  final _DialSelectMode mode;
+  final int hour12;
+  final int minute;
+  final double dialSize;
+  final ValueChanged<double> onChanged;
+
+  double get _selectedAngle {
+    final base = mode == _DialSelectMode.hour ? (hour12 % 12) : minute;
+    final count = mode == _DialSelectMode.hour ? 12 : 60;
+    return (base / count) * 2 * math.pi;
+  }
+
+  double _offsetToAngle(Offset local, double size) {
+    final c = Offset(size / 2, size / 2);
+    final v = local - c;
+    var rad = math.atan2(v.dy, v.dx) + math.pi / 2;
+    if (rad < 0) rad += 2 * math.pi;
+    return rad;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanDown: (d) => onChanged(_offsetToAngle(d.localPosition, dialSize)),
+      onPanUpdate: (d) => onChanged(_offsetToAngle(d.localPosition, dialSize)),
+      onTapDown: (d) => onChanged(_offsetToAngle(d.localPosition, dialSize)),
+      child: SizedBox(
+        width: dialSize,
+        height: dialSize,
+        child: CustomPaint(
+          painter: _JapaneseDialPainter(
+            mode: mode,
+            selectedAngle: _selectedAngle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _JapaneseDialPainter extends CustomPainter {
+  _JapaneseDialPainter({
+    required this.mode,
+    required this.selectedAngle,
+  });
+
+  final _DialSelectMode mode;
+  final double selectedAngle;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    final bgPaint = Paint()..color = AppPalette.beigeContainer;
+    final borderPaint = Paint()
+      ..color = AppPalette.green.withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    canvas.drawCircle(center, radius, bgPaint);
+    canvas.drawCircle(center, radius, borderPaint);
+
+    final count = mode == _DialSelectMode.hour ? 12 : 60;
+    final labelEvery = mode == _DialSelectMode.hour ? 1 : 5;
+    for (var i = 0; i < count; i++) {
+      final a = (i / count) * 2 * math.pi - math.pi / 2;
+      final tickInner = center + Offset(math.cos(a), math.sin(a)) * (radius - 10);
+      final tickOuter = center + Offset(math.cos(a), math.sin(a)) * (radius - (i % labelEvery == 0 ? 2 : 5));
+      final tickPaint = Paint()
+        ..color = AppPalette.navy.withValues(alpha: i % labelEvery == 0 ? 0.35 : 0.18)
+        ..strokeWidth = i % labelEvery == 0 ? 1.5 : 1;
+      canvas.drawLine(tickInner, tickOuter, tickPaint);
+
+      if (i % labelEvery == 0) {
+        final label = mode == _DialSelectMode.hour
+            ? '${i == 0 ? 12 : i}'
+            : i.toString().padLeft(2, '0');
+        final tp = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: TextStyle(
+              color: AppPalette.navy.withValues(alpha: 0.82),
+              fontSize: mode == _DialSelectMode.hour ? 15 : 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final pos = center +
+            Offset(math.cos(a), math.sin(a)) * (radius - 26) -
+            Offset(tp.width / 2, tp.height / 2);
+        tp.paint(canvas, pos);
+      }
+    }
+
+    final handEnd = center +
+        Offset(math.cos(selectedAngle - math.pi / 2), math.sin(selectedAngle - math.pi / 2)) *
+            (radius - 34);
+    final handPaint = Paint()
+      ..color = AppPalette.green
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, handEnd, handPaint);
+    canvas.drawCircle(handEnd, 7, Paint()..color = AppPalette.green);
+    canvas.drawCircle(center, 5, Paint()..color = AppPalette.navy);
+  }
+
+  @override
+  bool shouldRepaint(covariant _JapaneseDialPainter oldDelegate) {
+    return oldDelegate.mode != mode || oldDelegate.selectedAngle != selectedAngle;
   }
 }
