@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/constants/alarm_weekdays.dart';
@@ -21,6 +22,9 @@ class AddAlarmScreen extends ConsumerStatefulWidget {
 }
 
 class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
+  static const String _soundModePopupHideUntilKey =
+      'alarm_sound_mode_popup_hide_until_v1';
+
   late TimeOfDay _time;
   late Set<int> _weekdays;
   late String _soundId;
@@ -95,6 +99,18 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       return;
     }
 
+    if (await _shouldShowSoundModePopup()) {
+      final hideFor30Days = await _showSoundModePopup();
+      if (hideFor30Days) {
+        final prefs = await SharedPreferences.getInstance();
+        final hideUntil = DateTime.now().add(const Duration(days: 30));
+        await prefs.setInt(
+          _soundModePopupHideUntilKey,
+          hideUntil.millisecondsSinceEpoch,
+        );
+      }
+    }
+
     final notifier = ref.read(alarmsNotifierProvider.notifier);
     final initial = widget.initialAlarm;
     if (initial == null) {
@@ -122,6 +138,153 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     if (mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  Future<bool> _shouldShowSoundModePopup() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hideUntilMs = prefs.getInt(_soundModePopupHideUntilKey);
+    if (hideUntilMs == null) return true;
+    final hideUntil = DateTime.fromMillisecondsSinceEpoch(hideUntilMs);
+    return DateTime.now().isAfter(hideUntil);
+  }
+
+  Future<bool> _showSoundModePopup() async {
+    var hideFor30Days = false;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              backgroundColor: AppPalette.beigeSoft,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: BorderSide(
+                  color: AppPalette.green.withValues(alpha: 0.28),
+                ),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 6),
+              contentPadding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 2, 16, 18),
+              title: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppPalette.green.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 20,
+                      color: AppPalette.green,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '알람 소리 안내',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppPalette.navy,
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                      decoration: BoxDecoration(
+                        color: AppPalette.beigeContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppPalette.green.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        'iOS에서는 무음 상태일 때 알람 소리가 재생되지 않을 수 있습니다. '
+                        '알람을 사용할 때는 기기를 소리 모드로 전환해 주세요.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                          color: AppPalette.navy,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () {
+                        setDialogState(() {
+                          hideFor30Days = !hideFor30Days;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: hideFor30Days,
+                              side: BorderSide(
+                                color: AppPalette.green.withValues(alpha: 0.6),
+                              ),
+                              onChanged: (v) {
+                                setDialogState(() {
+                                  hideFor30Days = v ?? false;
+                                });
+                              },
+                            ),
+                            Expanded(
+                              child: Text(
+                                '해당 팝업 30일간 보이지 않기',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppPalette.navy,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppPalette.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () =>
+                        Navigator.of(dialogContext).pop(hideFor30Days),
+                    child: const Text('확인'),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    return result ?? false;
   }
 
   @override
