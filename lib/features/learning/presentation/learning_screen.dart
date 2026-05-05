@@ -2,6 +2,8 @@ import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../../../core/theme/theme.dart';
+
 class _KanaCell {
   const _KanaCell(this.jp, this.ko);
 
@@ -391,13 +393,11 @@ class _LearningTableCard extends StatelessWidget {
               children: [
                 TableRow(
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.4,
-                    ),
+                    color: AppPalette.green.withValues(alpha: 0.12),
                   ),
                   children: const [
-                    _TableCellText('일본어', bold: true),
-                    _TableCellText('뜻 / 발음', bold: true),
+                    _TableCellText('일본어', bold: true, isHeader: true),
+                    _TableCellText('뜻 / 발음', bold: true, isHeader: true),
                   ],
                 ),
                 ...rows.map((row) => _learningRow(context, row)),
@@ -415,6 +415,9 @@ class _LearningTableCard extends StatelessWidget {
     final korPron = row.korPronunciation.trim();
     final korValue = korPron.isEmpty ? row.kor : '${row.kor}\n$korPron';
     return TableRow(
+      decoration: BoxDecoration(
+        color: AppPalette.beigeSoft.withValues(alpha: 0.55),
+      ),
       children: [
         _TableCellText(jpValue),
         _TableCellText(korValue),
@@ -475,21 +478,24 @@ class _KanaTableCard extends StatelessWidget {
   TableRow _headerRow(BuildContext context) {
     return TableRow(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        color: AppPalette.green.withValues(alpha: 0.12),
       ),
       children: const [
-        _TableCellText('행', bold: true),
-        _TableCellText('아', bold: true),
-        _TableCellText('이', bold: true),
-        _TableCellText('우', bold: true),
-        _TableCellText('에', bold: true),
-        _TableCellText('오', bold: true),
+        _TableCellText('행', bold: true, isHeader: true),
+        _TableCellText('아', bold: true, isHeader: true),
+        _TableCellText('이', bold: true, isHeader: true),
+        _TableCellText('우', bold: true, isHeader: true),
+        _TableCellText('에', bold: true, isHeader: true),
+        _TableCellText('오', bold: true, isHeader: true),
       ],
     );
   }
 
   TableRow _bodyRow(BuildContext context, _KanaLine line) {
     return TableRow(
+      decoration: BoxDecoration(
+        color: AppPalette.beigeSoft.withValues(alpha: 0.55),
+      ),
       children: [
         _TableCellText(line.rowLabel, bold: true),
         ...line.cells.map(
@@ -503,22 +509,30 @@ class _KanaTableCard extends StatelessWidget {
 }
 
 class _TableCellText extends StatelessWidget {
-  const _TableCellText(this.value, {this.bold = false});
+  const _TableCellText(this.value, {this.bold = false, this.isHeader = false});
 
   final String value;
   final bool bold;
+  final bool isHeader;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: 3,
+        vertical: isHeader ? 8 : 7,
+      ),
       child: Text(
         value,
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              height: 1.15,
-              fontSize: 12,
+              height: isHeader ? 1.2 : 1.25,
+              fontSize: isHeader ? 12.5 : 12,
+              color: isHeader
+                  ? AppPalette.navy.withValues(alpha: 0.9)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.86),
             ),
       ),
     );

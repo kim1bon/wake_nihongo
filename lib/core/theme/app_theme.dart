@@ -27,6 +27,70 @@ abstract final class AppTheme {
       textTheme: textTheme,
       primaryTextTheme: primaryTextTheme,
       scaffoldBackgroundColor: AppPalette.beigeSoft,
+      cardTheme: CardThemeData(
+        color: AppPalette.beigeContainer,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: AppPalette.green.withValues(alpha: 0.24),
+          ),
+        ),
+      ),
+      dividerTheme: DividerThemeData(
+        color: AppPalette.navy.withValues(alpha: 0.10),
+        thickness: 1,
+        space: 1,
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: AppPalette.navy.withValues(alpha: 0.88),
+        textColor: AppPalette.navy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppPalette.beigeContainer,
+        selectedColor: AppPalette.greenContainer,
+        secondarySelectedColor: AppPalette.greenContainer,
+        side: BorderSide(color: AppPalette.navy.withValues(alpha: 0.18)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelStyle: textTheme.labelLarge?.copyWith(
+          color: AppPalette.navy,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return AppPalette.green.withValues(alpha: 0.18);
+            }
+            return AppPalette.beigeContainer;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            return states.contains(WidgetState.selected)
+                ? AppPalette.navy
+                : AppPalette.navy.withValues(alpha: 0.86);
+          }),
+          side: WidgetStateProperty.resolveWith(
+            (states) => BorderSide(
+              color: states.contains(WidgetState.selected)
+                  ? AppPalette.green.withValues(alpha: 0.54)
+                  : AppPalette.navy.withValues(alpha: 0.18),
+            ),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ),
       extensions: <ThemeExtension<dynamic>>[wn],
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppPalette.beigeSoft,

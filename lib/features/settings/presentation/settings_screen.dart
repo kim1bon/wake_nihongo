@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/theme.dart';
 import '../../alarm/presentation/alarm_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
 import '../../quiz/domain/quiz_prompt_mode.dart';
@@ -145,6 +146,19 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final sectionTitleStyle = theme.textTheme.titleSmall?.copyWith(
+      color: theme.colorScheme.primary,
+      fontWeight: FontWeight.w700,
+    );
+    final panelTitleStyle = theme.textTheme.titleMedium?.copyWith(
+      color: AppPalette.navy,
+      fontWeight: FontWeight.w700,
+    );
+    final panelDescStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.76),
+      height: 1.3,
+      fontWeight: FontWeight.w500,
+    );
     final entriesAsync = ref.watch(quizEntriesProvider);
     final categoriesAsync = ref.watch(quizAlarmEnabledCategoriesProvider);
     final categoryLevelsAsync = ref.watch(quizAlarmCategoryLevelsProvider);
@@ -171,9 +185,7 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               '알람',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: sectionTitleStyle,
             ),
           ),
           Card(
@@ -237,9 +249,7 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               '알람 해제 퀴즈',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: sectionTitleStyle,
             ),
           ),
           Padding(
@@ -247,16 +257,14 @@ class SettingsScreen extends ConsumerWidget {
             child: Text(
               '알람을 끌 때 출제되는 문제 범위입니다. 카테고리를 펼치면 해당 묶음의 레벨만 골라 출제할 수 있습니다. '
               '시트의「category」「level」열과 같으며, type이 sentence면 2지·그 외 4지입니다.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-              ),
+              style: panelDescStyle,
             ),
           ),
           const SizedBox(height: 8),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: quizPromptModeAsync.when(
                 loading: () => const ListTile(
                   title: Text('문제 방식'),
@@ -271,34 +279,133 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     Text(
                       '문제 방식',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: panelTitleStyle,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       '연습 퀴즈와 알람 해제 퀴즈 모두 이 설정을 따릅니다.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                      ),
+                      style: panelDescStyle,
                     ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<QuizPromptMode>(
-                      segments: const [
-                        ButtonSegment<QuizPromptMode>(
-                          value: QuizPromptMode.korToJp,
-                          label: Text('한국어 → 일본어'),
-                        ),
-                        ButtonSegment<QuizPromptMode>(
-                          value: QuizPromptMode.jpToKor,
-                          label: Text('일본어 → 한국어'),
-                        ),
-                      ],
-                      selected: {mode},
-                      onSelectionChanged: (next) {
-                        ref
-                            .read(quizPromptModeProvider.notifier)
-                            .setMode(next.first);
+                    const SizedBox(height: 14),
+                    Builder(
+                      builder: (context) {
+                        final isKorToJp = mode == QuizPromptMode.korToJp;
+                        final questionLabel = isKorToJp ? '한국어' : '일본어';
+                        final answerLabel = isKorToJp ? '일본어' : '한국어';
+                        return Container(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                          decoration: BoxDecoration(
+                            color: AppPalette.beigeSoft.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppPalette.green.withValues(alpha: 0.28),
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Text('문제', style: panelDescStyle),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          questionLabel,
+                                          style: panelTitleStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: 8),
+                                    child: StatefulBuilder(
+                                      builder: (context, setPressedState) {
+                                        var isPressed = false;
+                                        return StatefulBuilder(
+                                          builder: (context, setInnerState) {
+                                            return AnimatedScale(
+                                              duration: const Duration(
+                                                milliseconds: 110,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              scale: isPressed ? 0.92 : 1.0,
+                                              child: Material(
+                                                color: AppPalette.green.withValues(
+                                                  alpha: isPressed ? 0.24 : 0.16,
+                                                ),
+                                                shape: const CircleBorder(),
+                                                child: InkWell(
+                                                  customBorder: const CircleBorder(),
+                                                  splashColor: AppPalette.green
+                                                      .withValues(alpha: 0.24),
+                                                  highlightColor: AppPalette.green
+                                                      .withValues(alpha: 0.16),
+                                                  onHighlightChanged: (v) {
+                                                    setInnerState(() {
+                                                      isPressed = v;
+                                                    });
+                                                  },
+                                                  onTap: () {
+                                                    final next = isKorToJp
+                                                        ? QuizPromptMode.jpToKor
+                                                        : QuizPromptMode.korToJp;
+                                                    ref
+                                                        .read(
+                                                          quizPromptModeProvider
+                                                              .notifier,
+                                                        )
+                                                        .setMode(next);
+                                                  },
+                                                  child: Container(
+                                                    width: 34,
+                                                    height: 34,
+                                                    alignment: Alignment.center,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: AppPalette.green
+                                                            .withValues(
+                                                              alpha: isPressed
+                                                                  ? 0.54
+                                                                  : 0.38,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.swap_horiz_rounded,
+                                                      size: 19,
+                                                      color: AppPalette.navy
+                                                          .withValues(alpha: 0.82),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Text('정답', style: panelDescStyle),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          answerLabel,
+                                          style: panelTitleStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -309,7 +416,7 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: alarmQuizCountAsync.when(
                 loading: () => const ListTile(
                   title: Text('알람 시 문제 개수'),
@@ -325,18 +432,14 @@ class SettingsScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '알람 시 문제 개수',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: panelTitleStyle,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         '설정한 개수만큼 연속으로 맞혀야 알람을 끌 수 있어요.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                        ),
+                        style: panelDescStyle,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       SegmentedButton<int>(
                         segments: const [
                           ButtonSegment<int>(value: 1, label: Text('1개')),
@@ -361,16 +464,14 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               '카테고리 · 레벨',
-              style: theme.textTheme.titleSmall,
+              style: sectionTitleStyle,
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               '카테고리를 모두 켜 두면 전체에서 출제됩니다. 펼친 뒤 레벨을 일부만 켜 두면 그 카테고리는 선택한 레벨만 출제됩니다.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-              ),
+              style: panelDescStyle,
             ),
           ),
           const SizedBox(height: 8),
@@ -460,9 +561,7 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
               '로컬 데이터',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
+              style: sectionTitleStyle,
             ),
           ),
           Card(
@@ -501,9 +600,7 @@ class SettingsScreen extends ConsumerWidget {
                 error: (_, _) => const SizedBox.shrink(),
                 data: (local) => Text(
                   remote == local ? '버전이 일치합니다.' : '버전이 다릅니다. 다음 동기화에서 갱신됩니다.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                  ),
+                  style: panelDescStyle,
                 ),
               ),
             ),
@@ -542,8 +639,16 @@ class _CategoryLevelExpansionTile extends StatelessWidget {
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.fromLTRB(8, 0, 16, 0),
-        childrenPadding: const EdgeInsets.only(bottom: 8),
+        tilePadding: const EdgeInsets.fromLTRB(10, 2, 14, 2),
+        childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+        collapsedBackgroundColor: AppPalette.beigeContainer.withValues(alpha: 0.35),
+        backgroundColor: AppPalette.beigeContainer.withValues(alpha: 0.50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
         leading: Checkbox(
           visualDensity: VisualDensity.compact,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

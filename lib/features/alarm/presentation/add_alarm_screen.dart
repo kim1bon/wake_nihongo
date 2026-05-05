@@ -1086,6 +1086,34 @@ class _JapaneseDialPainter extends CustomPainter {
 
   final _DialSelectMode mode;
   final double selectedAngle;
+  static const List<String> _hourKanjiLabels = [
+    '十二時',
+    '一時',
+    '二時',
+    '三時',
+    '四時',
+    '五時',
+    '六時',
+    '七時',
+    '八時',
+    '九時',
+    '十時',
+    '十一時',
+  ];
+  static const List<String> _minuteKanjiLabels = [
+    '零分',
+    '五分',
+    '十分',
+    '十五分',
+    '二十分',
+    '二十五分',
+    '三十分',
+    '三十五分',
+    '四十分',
+    '四十五分',
+    '五十分',
+    '五十五分',
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1113,24 +1141,46 @@ class _JapaneseDialPainter extends CustomPainter {
       canvas.drawLine(tickInner, tickOuter, tickPaint);
 
       if (i % labelEvery == 0) {
-        final label = mode == _DialSelectMode.hour
-            ? '${i == 0 ? 12 : i}'
-            : i.toString().padLeft(2, '0');
-        final tp = TextPainter(
+        final isHourMode = mode == _DialSelectMode.hour;
+        final label = isHourMode ? '${i == 0 ? 12 : i}' : i.toString().padLeft(2, '0');
+        final numberTp = TextPainter(
           text: TextSpan(
             text: label,
             style: TextStyle(
               color: AppPalette.navy.withValues(alpha: 0.82),
-              fontSize: mode == _DialSelectMode.hour ? 15 : 12,
+              fontSize: isHourMode ? 17 : 13,
               fontWeight: FontWeight.w600,
+              fontFamily: AppFonts.japanese,
+              fontFamilyFallback: AppFonts.fallbackAfterJapanese,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final jaTp = TextPainter(
+          text: TextSpan(
+            text: isHourMode
+                ? _hourKanjiLabels[i]
+                : _minuteKanjiLabels[i ~/ 5],
+            style: TextStyle(
+              color: AppPalette.navy.withValues(alpha: 0.58),
+              fontSize: isHourMode ? 9 : 8.5,
+              fontWeight: FontWeight.w500,
+              fontFamily: AppFonts.japanese,
+              fontFamilyFallback: AppFonts.fallbackAfterJapanese,
             ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
         final pos = center +
             Offset(math.cos(a), math.sin(a)) * (radius - 26) -
-            Offset(tp.width / 2, tp.height / 2);
-        tp.paint(canvas, pos);
+            Offset(numberTp.width / 2, numberTp.height / 2);
+        final numberDy = -3.5;
+        numberTp.paint(canvas, pos.translate(0, numberDy));
+        final jaPos = pos.translate(
+          (numberTp.width - jaTp.width) / 2,
+          numberTp.height - 1.5,
+        );
+        jaTp.paint(canvas, jaPos);
       }
     }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/constants/alarm_weekdays.dart';
+import '../../../core/theme/theme.dart';
 import '../../quiz/presentation/quiz_practice_screen.dart';
 import '../domain/alarm.dart';
 import 'add_alarm_screen.dart';
@@ -62,25 +63,28 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
               child: Text('알람이 없습니다.\n+ 버튼으로 알람을 추가하세요.'),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             itemCount: alarms.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final alarm = alarms[index];
-              return _AlarmTile(
-                alarm: alarm,
-                onEdit: () async {
-                  await Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(
-                      builder: (_) => AddAlarmScreen(initialAlarm: alarm),
-                    ),
-                  );
-                  ref.invalidate(alarmsNotifierProvider);
-                },
-                onDelete: () => ref.read(alarmsNotifierProvider.notifier).remove(alarm.id),
-                onEnabledChanged: (enabled) =>
-                    ref.read(alarmsNotifierProvider.notifier).setAlarmEnabled(alarm.id, enabled),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _AlarmTile(
+                  alarm: alarm,
+                  onEdit: () async {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => AddAlarmScreen(initialAlarm: alarm),
+                      ),
+                    );
+                    ref.invalidate(alarmsNotifierProvider);
+                  },
+                  onDelete: () => ref.read(alarmsNotifierProvider.notifier).remove(alarm.id),
+                  onEnabledChanged: (enabled) => ref
+                      .read(alarmsNotifierProvider.notifier)
+                      .setAlarmEnabled(alarm.id, enabled),
+                ),
               );
             },
           );
@@ -116,45 +120,61 @@ class _AlarmTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final disabledColor = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.45);
     final time = TimeOfDay(hour: alarm.hour, minute: alarm.minute);
-    final label = MaterialLocalizations.of(context).formatTimeOfDay(time, alwaysUse24HourFormat: false);
+    final label = MaterialLocalizations.of(
+      context,
+    ).formatTimeOfDay(time, alwaysUse24HourFormat: false);
     final days = alarm.weekdays.toList()..sort();
     final dayLabel = AlarmWeekdays.isEveryDay(alarm.weekdays)
         ? '매일'
         : days.map((d) => _weekdayShort[d]).join(', ');
 
     final soundLabel = AlarmSoundIds.label(alarm.soundId);
-    return ListTile(
-      title: Text(
-        label,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: alarm.enabled ? null : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+        title: Text(
+          label,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: alarm.enabled ? AppPalette.navy : disabledColor,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            '반복: $dayLabel · 알람음: $soundLabel',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: alarm.enabled
+                      ? AppPalette.navy.withValues(alpha: 0.78)
+                      : disabledColor,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: alarm.enabled,
+              onChanged: onEnabledChanged,
             ),
-      ),
-      subtitle: Text(
-        '반복: $dayLabel · 알람음: $soundLabel',
-        style: alarm.enabled
-            ? null
-            : TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45)),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Switch(
-            value: alarm.enabled,
-            onChanged: onEnabledChanged,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: onEdit,
-            tooltip: '수정',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: onDelete,
-            tooltip: '삭제',
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: onEdit,
+              tooltip: '수정',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: onDelete,
+              tooltip: '삭제',
+            ),
+          ],
+        ),
       ),
     );
   }
