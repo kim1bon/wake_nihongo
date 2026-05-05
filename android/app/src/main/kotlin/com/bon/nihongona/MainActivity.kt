@@ -8,6 +8,7 @@ import android.os.Build
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     private var nativeChannel: MethodChannel? = null
@@ -48,6 +49,10 @@ class MainActivity : FlutterActivity() {
                         ),
                     )
                 }
+                "clearCorruptedScheduledNotificationCache" -> {
+                    clearCorruptedScheduledNotificationCache(applicationContext)
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -68,6 +73,68 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        private fun clearCorruptedScheduledNotificationCache(context: Context) {
+            val candidatePrefs = listOf(
+                "FlutterLocalNotificationsPlugin",
+                "flutter_local_notifications_plugin",
+                "scheduled_notifications",
+                "com.dexterous.flutterlocalnotifications",
+                "com.dexterous.flutterlocalnotifications.sharedpreferences",
+            )
+            for (name in candidatePrefs) {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        context.deleteSharedPreferences(name)
+                    } else {
+                        context.getSharedPreferences(name, Context.MODE_PRIVATE)
+                            .edit()
+                            .clear()
+                            .apply()
+                    }
+                } catch (_: Throwable) {
+                    // ?? ??? best-effort? ???? ?? ??? ?????.
+                }
+            }
+
+            // Flutter SharedPreferences ?????? ? ?? ?? ?? ?? ?? ??.
+            try {
+                val flutterPrefs =
+                    context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                val toRemove = flutterPrefs.all.keys.filter { key ->
+                    val lower = key.lowercase()
+                    lower.contains("scheduled_notifications") ||
+                        lower.contains("flutterlocalnotifications") ||
+                        lower.contains("flutter_local_notifications") ||
+                        lower.contains("dexterous")
+                }
+                if (toRemove.isNotEmpty()) {
+                    val editor = flutterPrefs.edit()
+                    toRemove.forEach { editor.remove(it) }
+                    editor.apply()
+                }
+            } catch (_: Throwable) {
+                // best-effort
+            }
+
+            // ?? ????? ??? ???? ???? ? ? ????? ?? ? ?? ?? ??? ??.
+            try {
+                val dataDir = context.applicationInfo.dataDir ?: return
+                val prefsDir = File(dataDir, "shared_prefs")
+                if (!prefsDir.exists() || !prefsDir.isDirectory) return
+                prefsDir.listFiles()?.forEach { file ->
+                    val name = file.name.lowercase()
+                    val target = name.contains("flutterlocalnotifications") ||
+                        name.contains("flutter_local_notifications") ||
+                        name.contains("scheduled_notifications") ||
+                        name == "com.dexterous.flutterlocalnotifications.xml"
+                    if (!target) return@forEach
+                    runCatching { file.delete() }
+                }
+            } catch (_: Throwable) {
+                // best-effort
+            }
+        }
+
         private fun isRingerHushed(am: AudioManager): Boolean {
             return when (am.ringerMode) {
                 AudioManager.RINGER_MODE_SILENT,
@@ -76,7 +143,7 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        /** ? ì? Â·ë¸?ë£¨?¬ì?¤ ?´ì?´????(?´ì?¥ ?¤í?¼ì»¤ë§?????ë?? ì¶?ë ¥). */
+        /** ?????????????? ?????????(????? ??????????????? ???). */
         private fun hasHeadphoneLikeOutput(am: AudioManager): Boolean {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { d ->

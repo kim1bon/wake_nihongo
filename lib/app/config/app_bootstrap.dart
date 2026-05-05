@@ -38,6 +38,7 @@ class AppBootstrap {
         );
       },
     );
+    await scheduler.healAndroidScheduledDataIfNeeded();
 
     final launch = await notifications.getNotificationAppLaunchDetails();
     if (launch?.didNotificationLaunchApp == true && launch!.notificationResponse != null) {
@@ -49,7 +50,8 @@ class AppBootstrap {
 
     final repo = AlarmRepositoryImpl(dataSource, scheduler);
     AlarmServices.alarmRepository = repo;
-    await repo.restoreSchedules();
+    // 앱 첫 프레임을 막지 않도록 복원은 백그라운드에서 진행합니다.
+    unawaited(repo.restoreSchedules());
     return repo;
   }
 }

@@ -33,6 +33,12 @@ class AlarmNativeAndroid {
     await _ch.invokeMethod<void>('stopRinging');
   }
 
+  /// flutter_local_notifications의 손상된 예약 캐시를 Android 네이티브에서 정리합니다.
+  static Future<void> clearCorruptedScheduledNotificationCache() async {
+    if (!Platform.isAndroid) return;
+    await _ch.invokeMethod<void>('clearCorruptedScheduledNotificationCache');
+  }
+
   /// MainActivity가 포그라운드 서비스 알림에서 열렸을 때 1회 페이로드.
   static Future<Map<String, dynamic>?> takePendingAlarmLaunch() async {
     if (!Platform.isAndroid) return null;

@@ -58,6 +58,15 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            // If debugging this specific issue, you can temporarily disable:
+            // isMinifyEnabled = false
+            // isShrinkResources = false
         }
     }
 }

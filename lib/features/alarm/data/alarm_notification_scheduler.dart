@@ -2,9 +2,11 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../core/constants/alarm_sound_ids.dart';
+import 'alarm_native_android.dart';
 import '../domain/alarm.dart';
 import '../domain/alarm_payload_kind.dart';
 
@@ -32,6 +34,37 @@ class AlarmNotificationScheduler {
 
   String _androidChannelId(String soundId) =>
       'wake_nihongo_${AlarmSoundIds.channelSuffix(soundId)}';
+
+  bool _isAndroidScheduledDataCorruptionError(Object error) {
+    if (!Platform.isAndroid || error is! PlatformException) return false;
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+    final details = '${error.details}'.toLowerCase();
+    return code.contains('error') &&
+        (message.contains('missing type parameter') ||
+            details.contains('missing type parameter'));
+  }
+
+  Future<void> _runWithAndroidScheduledDataRecovery(
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (error) {
+      if (!_isAndroidScheduledDataCorruptionError(error)) rethrow;
+      // cancelAll()도 동일 오류로 실패할 수 있어 네이티브에서 직접 캐시를 정리합니다.
+      await AlarmNativeAndroid.clearCorruptedScheduledNotificationCache();
+      await action();
+    }
+  }
+
+  /// 앱 시작 시 Android 예약 캐시 손상 여부를 선제 점검/복구합니다.
+  Future<void> healAndroidScheduledDataIfNeeded() async {
+    if (!Platform.isAndroid) return;
+    await _runWithAndroidScheduledDataRecovery(() async {
+      await _plugin.pendingNotificationRequests();
+    });
+  }
 
   Future<void> init({
     DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
@@ -99,147 +132,170 @@ class AlarmNotificationScheduler {
     required String soundId,
     required int delayMinutes,
   }) async {
-    if (alarmId < 0) return;
-    final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
-    final rawName = AlarmSoundIds.androidRawName(sid);
-    final channelId = _androidChannelId(sid);
-    final when = tz.TZDateTime.now(tz.local).add(Duration(minutes: delayMinutes));
+    await _runWithAndroidScheduledDataRecovery(() async {
+      if (alarmId < 0) return;
+      final sid = AlarmSoundIds.isValid(soundId)
+          ? soundId
+          : AlarmSoundIds.defaultId;
+      final rawName = AlarmSoundIds.androidRawName(sid);
+      final channelId = _androidChannelId(sid);
+      final when = tz.TZDateTime.now(tz.local).add(
+        Duration(minutes: delayMinutes),
+      );
 
-    final androidDetails = AndroidNotificationDetails(
-      channelId,
-      '알람 (${AlarmSoundIds.label(sid)})',
-      channelDescription: _channelDescription,
-      importance: Importance.max,
-      priority: Priority.max,
-      category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true,
-      visibility: NotificationVisibility.public,
-      audioAttributesUsage: AudioAttributesUsage.alarm,
-      sound: RawResourceAndroidNotificationSound(rawName),
-      playSound: true,
-      enableVibration: true,
-      ongoing: true,
-      autoCancel: false,
-      onlyAlertOnce: false,
-    );
-    final iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      presentBanner: true,
-      presentList: true,
-      sound: AlarmSoundIds.iosFileName(sid),
-      interruptionLevel: InterruptionLevel.timeSensitive,
-    );
-    final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        '알람 (${AlarmSoundIds.label(sid)})',
+        channelDescription: _channelDescription,
+        importance: Importance.max,
+        priority: Priority.max,
+        category: AndroidNotificationCategory.alarm,
+        fullScreenIntent: true,
+        visibility: NotificationVisibility.public,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        sound: RawResourceAndroidNotificationSound(rawName),
+        playSound: true,
+        enableVibration: true,
+        ongoing: true,
+        autoCancel: false,
+        onlyAlertOnce: false,
+      );
+      final iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        presentBanner: true,
+        presentList: true,
+        sound: AlarmSoundIds.iosFileName(sid),
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      );
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    final payload = jsonEncode({
-      'alarmId': alarmId,
-      'soundId': sid,
-      'kind': AlarmPayloadKind.reschedule.name,
+      final payload = jsonEncode({
+        'alarmId': alarmId,
+        'soundId': sid,
+        'kind': AlarmPayloadKind.reschedule.name,
+      });
+
+      if (Platform.isIOS) {
+        final pending = await _plugin.pendingNotificationRequests();
+        if (pending.length >= _iosMaxPendingNotifications) return;
+      }
+
+      await _plugin.zonedSchedule(
+        rescheduleNotificationId(alarmId),
+        _appNotificationTitle,
+        '$delayMinutes분 후 다시 알려드릴게요.',
+        when,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
     });
-
-    if (Platform.isIOS) {
-      final pending = await _plugin.pendingNotificationRequests();
-      if (pending.length >= _iosMaxPendingNotifications) return;
-    }
-
-    await _plugin.zonedSchedule(
-      rescheduleNotificationId(alarmId),
-      _appNotificationTitle,
-      '$delayMinutes분 후 다시 알려드릴게요.',
-      when,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
   }
 
   Future<void> schedule(Alarm alarm) async {
-    if (!alarm.enabled || alarm.weekdays.isEmpty) return;
+    await _runWithAndroidScheduledDataRecovery(() async {
+      if (!alarm.enabled || alarm.weekdays.isEmpty) return;
 
-    final soundId = AlarmSoundIds.isValid(alarm.soundId) ? alarm.soundId : AlarmSoundIds.defaultId;
-    final rawName = AlarmSoundIds.androidRawName(soundId);
-    final channelId = _androidChannelId(soundId);
+      final soundId = AlarmSoundIds.isValid(alarm.soundId)
+          ? alarm.soundId
+          : AlarmSoundIds.defaultId;
+      final rawName = AlarmSoundIds.androidRawName(soundId);
+      final channelId = _androidChannelId(soundId);
 
-    final androidDetails = AndroidNotificationDetails(
-      channelId,
-      '알람 (${AlarmSoundIds.label(soundId)})',
-      channelDescription: _channelDescription,
-      importance: Importance.max,
-      priority: Priority.max,
-      category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true,
-      visibility: NotificationVisibility.public,
-      audioAttributesUsage: AudioAttributesUsage.alarm,
-      sound: RawResourceAndroidNotificationSound(rawName),
-      // 무한 루프는 네이티브 포그라운드 서비스(MediaPlayer)에서 재생 — 짧은 알림음 중복 방지
-      playSound: false,
-      enableVibration: true,
-      ongoing: true,
-      autoCancel: false,
-      onlyAlertOnce: false,
-    );
-    final iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      presentBanner: true,
-      presentList: true,
-      sound: AlarmSoundIds.iosFileName(soundId),
-      // iOS 전달 우선순위를 높여 Focus 환경에서도 알림 도달 가능성을 높입니다.
-      interruptionLevel: InterruptionLevel.timeSensitive,
-    );
-    final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        '알람 (${AlarmSoundIds.label(soundId)})',
+        channelDescription: _channelDescription,
+        importance: Importance.max,
+        priority: Priority.max,
+        category: AndroidNotificationCategory.alarm,
+        fullScreenIntent: true,
+        visibility: NotificationVisibility.public,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        sound: RawResourceAndroidNotificationSound(rawName),
+        // 무한 루프는 네이티브 포그라운드 서비스(MediaPlayer)에서 재생 — 짧은 알림음 중복 방지
+        playSound: false,
+        enableVibration: true,
+        ongoing: true,
+        autoCancel: false,
+        onlyAlertOnce: false,
+      );
+      final iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        presentBanner: true,
+        presentList: true,
+        sound: AlarmSoundIds.iosFileName(soundId),
+        // iOS 전달 우선순위를 높여 Focus 환경에서도 알림 도달 가능성을 높입니다.
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      );
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    final payload = jsonEncode({
-      'alarmId': alarm.id,
-      'soundId': soundId,
-      'kind': AlarmPayloadKind.weekly.name,
-    });
+      final payload = jsonEncode({
+        'alarmId': alarm.id,
+        'soundId': soundId,
+        'kind': AlarmPayloadKind.weekly.name,
+      });
 
-    var iosBudget = 0;
-    if (Platform.isIOS) {
-      final pending = await _plugin.pendingNotificationRequests();
-      iosBudget = _iosMaxPendingNotifications - pending.length;
-      if (iosBudget <= 0) return;
-    }
-
-    for (final weekday in alarm.weekdays) {
-      final firstWhen = _nextInstanceOfWeekday(weekday, alarm.hour, alarm.minute);
+      var iosBudget = 0;
       if (Platform.isIOS) {
-        // iOS는 Android처럼 OS 레벨 무한 루프 재생이 어려워, 5분 간격 재알림 체인을 예약합니다.
-        for (var slot = 0; slot < _iosRepeatSlots; slot++) {
-          if (iosBudget <= 0) return;
-          final when = firstWhen.add(_iosRepeatInterval * slot);
+        final pending = await _plugin.pendingNotificationRequests();
+        iosBudget = _iosMaxPendingNotifications - pending.length;
+        if (iosBudget <= 0) return;
+      }
+
+      for (final weekday in alarm.weekdays) {
+        final firstWhen = _nextInstanceOfWeekday(
+          weekday,
+          alarm.hour,
+          alarm.minute,
+        );
+        if (Platform.isIOS) {
+          // iOS는 Android처럼 OS 레벨 무한 루프 재생이 어려워, 5분 간격 재알림 체인을 예약합니다.
+          for (var slot = 0; slot < _iosRepeatSlots; slot++) {
+            if (iosBudget <= 0) return;
+            final when = firstWhen.add(_iosRepeatInterval * slot);
+            await _plugin.zonedSchedule(
+              _iosSlotNotificationId(alarm.id, weekday, slot),
+              _appNotificationTitle,
+              '알람 시간입니다. 앱을 열어 알람을 끄세요.',
+              when,
+              details,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+              matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+              payload: payload,
+            );
+            iosBudget--;
+          }
+        } else {
           await _plugin.zonedSchedule(
-            _iosSlotNotificationId(alarm.id, weekday, slot),
+            notificationId(alarm.id, weekday),
             _appNotificationTitle,
             '알람 시간입니다. 앱을 열어 알람을 끄세요.',
-            when,
+            firstWhen,
             details,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
             matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
             payload: payload,
           );
-          iosBudget--;
         }
-      } else {
-        await _plugin.zonedSchedule(
-          notificationId(alarm.id, weekday),
-          _appNotificationTitle,
-          '알람 시간입니다. 앱을 열어 알람을 끄세요.',
-          firstWhen,
-          details,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-          payload: payload,
-        );
       }
-    }
+    });
   }
 
   tz.TZDateTime _nextInstanceOfWeekday(int weekday, int hour, int minute) {

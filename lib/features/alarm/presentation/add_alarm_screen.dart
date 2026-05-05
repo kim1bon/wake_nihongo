@@ -33,6 +33,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
   late bool _rescheduleEnabled;
   late int _rescheduleDelayMinutes;
   late int _rescheduleMaxCount;
+  bool _isSaving = false;
 
   late final FixedExtentScrollController _delayPickController;
   late final FixedExtentScrollController _countPickController;
@@ -112,6 +113,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
   }
 
   Future<void> _save() async {
+    if (_isSaving) return;
     if (_weekdays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('최소 한 요일을 선택하세요.')),
@@ -119,44 +121,76 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       return;
     }
 
-    if (await _shouldShowSoundModePopup()) {
-      final hideFor30Days = await _showSoundModePopup();
-      if (hideFor30Days) {
-        final prefs = await SharedPreferences.getInstance();
-        final hideUntil = DateTime.now().add(const Duration(days: 30));
-        await prefs.setInt(
-          _soundModePopupHideUntilKey,
-          hideUntil.millisecondsSinceEpoch,
+    setState(() => _isSaving = true);
+    try {
+      if (await _shouldShowSoundModePopup()) {
+        final hideFor30Days = await _showSoundModePopup();
+        if (hideFor30Days) {
+          final prefs = await SharedPreferences.getInstance();
+          final hideUntil = DateTime.now().add(const Duration(days: 30));
+          await prefs.setInt(
+            _soundModePopupHideUntilKey,
+            hideUntil.millisecondsSinceEpoch,
+          );
+        }
+      }
+
+      final notifier = ref.read(alarmsNotifierProvider.notifier);
+      final initial = widget.initialAlarm;
+      if (initial == null) {
+        await notifier.create(
+          hour: _time.hour,
+          minute: _time.minute,
+          weekdays: Set<int>.from(_weekdays),
+          soundId: _soundId,
+          rescheduleEnabled: _rescheduleEnabled,
+          rescheduleDelayMinutes: _rescheduleDelayMinutes,
+          rescheduleMaxCount: _rescheduleMaxCount,
+        );
+      } else {
+        await notifier.updateAlarm(
+          id: initial.id,
+          hour: _time.hour,
+          minute: _time.minute,
+          weekdays: Set<int>.from(_weekdays),
+          soundId: _soundId,
+          rescheduleEnabled: _rescheduleEnabled,
+          rescheduleDelayMinutes: _rescheduleDelayMinutes,
+          rescheduleMaxCount: _rescheduleMaxCount,
         );
       }
-    }
-
-    final notifier = ref.read(alarmsNotifierProvider.notifier);
-    final initial = widget.initialAlarm;
-    if (initial == null) {
-      await notifier.create(
-        hour: _time.hour,
-        minute: _time.minute,
-        weekdays: Set<int>.from(_weekdays),
-        soundId: _soundId,
-        rescheduleEnabled: _rescheduleEnabled,
-        rescheduleDelayMinutes: _rescheduleDelayMinutes,
-        rescheduleMaxCount: _rescheduleMaxCount,
-      );
-    } else {
-      await notifier.updateAlarm(
-        id: initial.id,
-        hour: _time.hour,
-        minute: _time.minute,
-        weekdays: Set<int>.from(_weekdays),
-        soundId: _soundId,
-        rescheduleEnabled: _rescheduleEnabled,
-        rescheduleDelayMinutes: _rescheduleDelayMinutes,
-        rescheduleMaxCount: _rescheduleMaxCount,
-      );
-    }
-    if (mounted) {
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e, st) {
+      if (mounted) {
+        final detail = 'PlatformException/Runtime 로그:\n$e\n\nStackTrace:\n$st';
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('알람 저장 실패'),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  detail,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('닫기'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -623,8 +657,14 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: FilledButton(
-            onPressed: _save,
-            child: const Text('저장'),
+            onPressed: _isSaving ? null : _save,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                : const Text('저장'),
           ),
         ),
       ),
