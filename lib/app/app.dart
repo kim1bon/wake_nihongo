@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -209,8 +210,34 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       return;
     }
 
-    final result = await _quizRepository.updateQuizFromRemote(status: status);
-    if (!mounted || !result.updated) return;
+    final progressNotifier = ValueNotifier<QuizDownloadProgress?>(null);
+    // navigatorKey.currentContext는 Navigator 조상에 Overlay가 없어 maybeOf가 null이 될 수 있음.
+    final overlayState = AlarmRingCoordinator.navigatorKey.currentState?.overlay;
+    OverlayEntry? overlayEntry;
+    if (overlayState != null) {
+      overlayEntry = OverlayEntry(
+        builder: (context) => _QuizDownloadOverlay(
+          progressListenable: progressNotifier,
+        ),
+      );
+      overlayState.insert(overlayEntry);
+    }
+
+    QuizSyncResult result;
+    try {
+      result = await _quizRepository.updateQuizFromRemote(
+        status: status,
+        onDownloadProgress: (p) {
+          progressNotifier.value = p;
+        },
+      );
+    } finally {
+      overlayEntry?.remove();
+      progressNotifier.dispose();
+    }
+
+    if (!mounted) return;
+    if (!result.updated) return;
 
     ref.invalidate(localQuizVersionProvider);
     ref.invalidate(remoteQuizVersionProvider);
@@ -247,6 +274,103 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
         Locale('en', 'US'),
       ],
       home: const MainTabsScreen(),
+    );
+  }
+}
+
+/// 퀴즈 동기화 중 전체 화면 반투명 + 시트 진행(n/N) + 불확정 프로그래스바.
+class _QuizDownloadOverlay extends StatelessWidget {
+  const _QuizDownloadOverlay({
+    required this.progressListenable,
+  });
+
+  final ValueListenable<QuizDownloadProgress?> progressListenable;
+
+  static String _titleFor(QuizDownloadProgress? p) {
+    if (p == null) return '퀴즈를 준비하는 중…';
+    return switch (p.phase) {
+      QuizDownloadPhase.preparingIndex => '퀴즈 목록을 불러오는 중',
+      QuizDownloadPhase.downloadingSheet => '시트 다운로드 중',
+      QuizDownloadPhase.legacyCsv => '퀴즈 파일 다운로드 중',
+    };
+  }
+
+  static String _countLineFor(QuizDownloadProgress? p) {
+    if (p == null) return '';
+    return switch (p.phase) {
+      QuizDownloadPhase.preparingIndex => '',
+      QuizDownloadPhase.downloadingSheet =>
+        p.total > 0 ? '${p.current} / ${p.total}' : '',
+      QuizDownloadPhase.legacyCsv => '1 / 1',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.black.withValues(alpha: 0.5),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
+              child: ValueListenableBuilder<QuizDownloadProgress?>(
+                valueListenable: progressListenable,
+                builder: (context, progress, _) {
+                  final countLine = _countLineFor(progress);
+                  final label = progress?.contentLabel;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _titleFor(progress),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (countLine.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          countLine,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: const LinearProgressIndicator(
+                          minHeight: 6,
+                        ),
+                      ),
+                      if (label != null && label.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -35,6 +35,36 @@ class QuizSyncResult {
   final String currentQuizVersion;
 }
 
+/// 퀴즈 동기화 UI용 진행 상태.
+enum QuizDownloadPhase {
+  /// 인덱스 시트 CSV 요청 중.
+  preparingIndex,
+
+  /// 개별 시트 CSV 수신 중 ([current] / [total]).
+  downloadingSheet,
+
+  /// 레거시 단일 CSV 한 번에 수신 (1/1).
+  legacyCsv,
+}
+
+class QuizDownloadProgress {
+  const QuizDownloadProgress({
+    required this.phase,
+    required this.current,
+    required this.total,
+    this.contentLabel,
+  });
+
+  final QuizDownloadPhase phase;
+
+  /// [downloadingSheet]: 1…[total]. 그 외 단계는 UI에서 무시해도 됨.
+  final int current;
+  final int total;
+
+  /// 인덱스 시트의 콘텐츠 이름(있을 때만).
+  final String? contentLabel;
+}
+
 class QuizRepository {
   QuizRepository({
     QuizRemoteDataSource? remoteDataSource,
@@ -71,8 +101,11 @@ class QuizRepository {
   /// 실패 시 레거시 단일 GID CSV로 폴백합니다.
   Future<QuizSyncResult> updateQuizFromRemote({
     required QuizVersionStatus status,
+    void Function(QuizDownloadProgress progress)? onDownloadProgress,
   }) async {
-    final multi = await _downloadMultiSheetsToCache();
+    final multi = await _downloadMultiSheetsToCache(
+      onProgress: onDownloadProgress,
+    );
     if (multi != null && multi.isNotEmpty) {
       await _cache.deleteMainQuizCsvIfExists();
       await _cache.saveMeta(
@@ -87,6 +120,13 @@ class QuizRepository {
     }
 
     try {
+      onDownloadProgress?.call(
+        const QuizDownloadProgress(
+          phase: QuizDownloadPhase.legacyCsv,
+          current: 1,
+          total: 1,
+        ),
+      );
       final quizCsv = await _remote.fetchRawCsv(
         uri: QuizSheetConfig.legacyQuizExportCsvUri,
       );
@@ -162,7 +202,16 @@ class QuizRepository {
   }
 
   /// 인덱스에서 활성 시트를 받아 저장하고, 파싱된 전체 목록을 반환합니다. 실패 시 `null`.
-  Future<List<QuizEntry>?> _downloadMultiSheetsToCache() async {
+  Future<List<QuizEntry>?> _downloadMultiSheetsToCache({
+    void Function(QuizDownloadProgress progress)? onProgress,
+  }) async {
+    onProgress?.call(
+      const QuizDownloadProgress(
+        phase: QuizDownloadPhase.preparingIndex,
+        current: 0,
+        total: 0,
+      ),
+    );
     List<QuizIndexRow> rows;
     try {
       rows = await _index.fetchActiveRows();
@@ -185,6 +234,16 @@ class QuizRepository {
         key = '${_storageKeyForIndexId(row.id)}_$disambig';
       }
       usedKeys.add(key);
+
+      final label = row.contentName.trim();
+      onProgress?.call(
+        QuizDownloadProgress(
+          phase: QuizDownloadPhase.downloadingSheet,
+          current: i + 1,
+          total: rows.length,
+          contentLabel: label.isEmpty ? null : label,
+        ),
+      );
 
       final uri = normalizeGoogleSheetCsvUri(row.url);
       if (uri == null) continue;
