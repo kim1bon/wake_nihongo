@@ -123,7 +123,7 @@ class _AlarmTile extends StatelessWidget {
         ? '매일'
         : days.map((d) => _weekdayShort[d]).join(', ');
 
-    final soundLabel = AlarmSoundIds.isValid(alarm.soundId) ? alarm.soundId : AlarmSoundIds.defaultId;
+    final soundLabel = AlarmSoundIds.label(alarm.soundId);
     return ListTile(
       title: Text(
         label,

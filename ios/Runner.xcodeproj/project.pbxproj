@@ -20,6 +20,12 @@
 		E1B200021CF9000F007C117D /* Alram_02.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E1B100021CF9000F007C117D /* Alram_02.mp3 */; };
 		E1B200031CF9000F007C117D /* Alram_03.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E1B100031CF9000F007C117D /* Alram_03.mp3 */; };
 		E1B200041CF9000F007C117D /* Alram_04.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E1B100041CF9000F007C117D /* Alram_04.mp3 */; };
+		F10100011CF9000F007C117D /* basic.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000011CF9000F007C117D /* basic.mp3 */; };
+		F10100021CF9000F007C117D /* chicken.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000021CF9000F007C117D /* chicken.mp3 */; };
+		F10100031CF9000F007C117D /* clear_horizon.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000031CF9000F007C117D /* clear_horizon.mp3 */; };
+		F10100041CF9000F007C117D /* japan_signal.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000041CF9000F007C117D /* japan_signal.mp3 */; };
+		F10100051CF9000F007C117D /* alarm_clock.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000051CF9000F007C117D /* alarm_clock.mp3 */; };
+		F10100061CF9000F007C117D /* ghibli_style.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = F10000061CF9000F007C117D /* ghibli_style.mp3 */; };
 		FBF1E015BA8EB27234C25121 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 14F1C89A9BB09DE58FAAE4E9 /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -74,6 +80,12 @@
 		E1B100021CF9000F007C117D /* Alram_02.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_02.mp3; sourceTree = "<group>"; };
 		E1B100031CF9000F007C117D /* Alram_03.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_03.mp3; sourceTree = "<group>"; };
 		E1B100041CF9000F007C117D /* Alram_04.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_04.mp3; sourceTree = "<group>"; };
+		F10000011CF9000F007C117D /* basic.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = basic.mp3; sourceTree = "<group>"; };
+		F10000021CF9000F007C117D /* chicken.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = chicken.mp3; sourceTree = "<group>"; };
+		F10000031CF9000F007C117D /* clear_horizon.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = clear_horizon.mp3; sourceTree = "<group>"; };
+		F10000041CF9000F007C117D /* japan_signal.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = japan_signal.mp3; sourceTree = "<group>"; };
+		F10000051CF9000F007C117D /* alarm_clock.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = alarm_clock.mp3; sourceTree = "<group>"; };
+		F10000061CF9000F007C117D /* ghibli_style.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = ghibli_style.mp3; sourceTree = "<group>"; };
 		E6A56E356C9E10DA9180B64B /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -158,6 +170,12 @@
 				E1B100021CF9000F007C117D /* Alram_02.mp3 */,
 				E1B100031CF9000F007C117D /* Alram_03.mp3 */,
 				E1B100041CF9000F007C117D /* Alram_04.mp3 */,
+				F10000011CF9000F007C117D /* basic.mp3 */,
+				F10000021CF9000F007C117D /* chicken.mp3 */,
+				F10000031CF9000F007C117D /* clear_horizon.mp3 */,
+				F10000041CF9000F007C117D /* japan_signal.mp3 */,
+				F10000051CF9000F007C117D /* alarm_clock.mp3 */,
+				F10000061CF9000F007C117D /* ghibli_style.mp3 */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
@@ -283,6 +301,12 @@
 				E1B200021CF9000F007C117D /* Alram_02.mp3 in Resources */,
 				E1B200031CF9000F007C117D /* Alram_03.mp3 in Resources */,
 				E1B200041CF9000F007C117D /* Alram_04.mp3 in Resources */,
+				F10100011CF9000F007C117D /* basic.mp3 in Resources */,
+				F10100021CF9000F007C117D /* chicken.mp3 in Resources */,
+				F10100031CF9000F007C117D /* clear_horizon.mp3 in Resources */,
+				F10100041CF9000F007C117D /* japan_signal.mp3 in Resources */,
+				F10100051CF9000F007C117D /* alarm_clock.mp3 in Resources */,
+				F10100061CF9000F007C117D /* ghibli_style.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

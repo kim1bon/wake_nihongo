@@ -195,7 +195,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
           const SizedBox(height: 8),
           ListTile(
             title: const Text('알람음'),
-            subtitle: Text(_soundId),
+            subtitle: Text(AlarmSoundIds.label(_soundId)),
             trailing: const Icon(Icons.music_note_outlined),
             onTap: () async {
               final chosen = await showModalBottomSheet<String>(

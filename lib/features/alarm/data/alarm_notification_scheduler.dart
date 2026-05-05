@@ -9,7 +9,7 @@ import '../domain/alarm.dart';
 import '../domain/alarm_payload_kind.dart';
 
 /// Schedules alarms. Android: per-sound notification channel + `res/raw` tone + alarm usage.
-/// iOS: bundled `Alram_0x.mp3` in Runner. See [AlarmSoundIds].
+/// iOS: bundled `basic.mp3` ... `ghibli_style.mp3` in Runner. See [AlarmSoundIds].
 class AlarmNotificationScheduler {
   AlarmNotificationScheduler(this._plugin);
 
@@ -53,7 +53,7 @@ class AlarmNotificationScheduler {
       await android?.createNotificationChannel(
         AndroidNotificationChannel(
           _androidChannelId(soundId),
-          '알람 ($soundId)',
+          '알람 (${AlarmSoundIds.label(soundId)})',
           description: _channelDescription,
           importance: Importance.max,
           playSound: true,
@@ -107,7 +107,7 @@ class AlarmNotificationScheduler {
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      '알람 ($sid)',
+      '알람 (${AlarmSoundIds.label(sid)})',
       channelDescription: _channelDescription,
       importance: Importance.max,
       priority: Priority.max,
@@ -165,7 +165,7 @@ class AlarmNotificationScheduler {
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      '알람 ($soundId)',
+      '알람 (${AlarmSoundIds.label(soundId)})',
       channelDescription: _channelDescription,
       importance: Importance.max,
       priority: Priority.max,

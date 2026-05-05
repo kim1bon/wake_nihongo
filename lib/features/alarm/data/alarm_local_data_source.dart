@@ -24,7 +24,7 @@ CREATE TABLE alarms (
   minute INTEGER NOT NULL,
   weekdays TEXT NOT NULL,
   enabled INTEGER NOT NULL DEFAULT 1,
-  sound_id TEXT NOT NULL DEFAULT 'Alram_01',
+  sound_id TEXT NOT NULL DEFAULT 'basic',
   reschedule_enabled INTEGER NOT NULL DEFAULT 0,
   reschedule_delay_minutes INTEGER NOT NULL DEFAULT 5,
   reschedule_max_count INTEGER NOT NULL DEFAULT 3
@@ -34,7 +34,7 @@ CREATE TABLE alarms (
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute(
-            "ALTER TABLE alarms ADD COLUMN sound_id TEXT NOT NULL DEFAULT 'Alram_01'",
+            "ALTER TABLE alarms ADD COLUMN sound_id TEXT NOT NULL DEFAULT 'basic'",
           );
         }
         if (oldVersion < 3) {

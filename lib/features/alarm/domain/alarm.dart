@@ -18,7 +18,7 @@ class Alarm {
   final Set<int> weekdays;
   final bool enabled;
 
-  /// One of [AlarmSoundIds.all], e.g. `Alram_01`.
+  /// One of [AlarmSoundIds.all], e.g. `basic`.
   final String soundId;
 
   /// 「다시 알림」기능 사용 여부.

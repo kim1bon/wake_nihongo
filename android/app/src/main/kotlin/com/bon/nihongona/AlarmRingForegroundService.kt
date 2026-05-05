@@ -37,9 +37,9 @@ class AlarmRingForegroundService : Service() {
             return START_NOT_STICKY
         }
 
-        val raw = intent?.getStringExtra(EXTRA_RAW) ?: "alram_01"
+        val raw = intent?.getStringExtra(EXTRA_RAW) ?: "basic"
         val alarmId = intent?.getIntExtra(EXTRA_ALARM_ID, -1) ?: -1
-        val soundFlutter = intent?.getStringExtra(EXTRA_SOUND_ID) ?: "Alram_01"
+        val soundFlutter = intent?.getStringExtra(EXTRA_SOUND_ID) ?: "basic"
 
         startForegroundWithNotif(alarmId, soundFlutter, raw)
         startPlayer(raw)
@@ -55,7 +55,7 @@ class AlarmRingForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val ch = NotificationChannel(
                 CHANNEL_ID,
-                "알람 재생",
+                "?�람 ?�생",
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 setSound(null, null)
@@ -93,8 +93,8 @@ class AlarmRingForegroundService : Service() {
         )
 
         val notif = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("일어나 알람")
-            .setContentText("알람이 울리는 중입니다. 탭하여 앱에서 끄세요.")
+            .setContentTitle("?�어???�람")
+            .setContentText("?�람???�리??중입?�다. ??��???�에???�세??")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -102,7 +102,7 @@ class AlarmRingForegroundService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openPi)
             .setFullScreenIntent(openPi, true)
-            .addAction(0, "알람 끄기", stopPi)
+            .addAction(0, "?�람 ?�기", stopPi)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

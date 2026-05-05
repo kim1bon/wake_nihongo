@@ -30,7 +30,7 @@ class MainActivity : FlutterActivity() {
                     val i = intent
                     if (i.getBooleanExtra(EXTRA_FROM_ALARM_SERVICE, false)) {
                         val payload = mapOf(
-                            "soundId" to (i.getStringExtra(EXTRA_SOUND_ID) ?: "Alram_01"),
+                            "soundId" to (i.getStringExtra(EXTRA_SOUND_ID) ?: "basic"),
                             "alarmId" to i.getIntExtra(EXTRA_ALARM_ID, -1),
                         )
                         i.removeExtra(EXTRA_FROM_ALARM_SERVICE)
@@ -58,11 +58,11 @@ class MainActivity : FlutterActivity() {
         setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_FROM_ALARM_SERVICE, false)) {
             val payload = mapOf(
-                "soundId" to (intent.getStringExtra(EXTRA_SOUND_ID) ?: "Alram_01"),
+                "soundId" to (intent.getStringExtra(EXTRA_SOUND_ID) ?: "basic"),
                 "alarmId" to intent.getIntExtra(EXTRA_ALARM_ID, -1),
             )
             nativeChannel?.invokeMethod(METHOD_ON_ALARM_LAUNCH_INTENT, payload)
-            // 동일 Intent 재사용 시 Dart 중복 진입 방지
+            // ?? Intent ??? ? Dart ?? ?? ??
             intent.removeExtra(EXTRA_FROM_ALARM_SERVICE)
         }
     }
@@ -76,7 +76,7 @@ class MainActivity : FlutterActivity() {
             }
         }
 
-        /** 유선·블루투스 이어폰 등 (내장 스피커만이 아닌 출력). */
+        /** ?��?�·�?루?��?� ?��?�????(?��?� ?��?�커�?????�?? �?력). */
         private fun hasHeadphoneLikeOutput(am: AudioManager): Boolean {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { d ->

@@ -12,7 +12,7 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         val weekday = intent.getIntExtra(EXTRA_WEEKDAY, 1)
         val hour = intent.getIntExtra(EXTRA_HOUR, 0)
         val minute = intent.getIntExtra(EXTRA_MINUTE, 0)
-        val raw = intent.getStringExtra(EXTRA_RAW) ?: "alram_01"
+        val raw = intent.getStringExtra(EXTRA_RAW) ?: "basic"
         val soundId = rawToFlutterSoundId(raw)
 
         Log.d(TAG, "alarm fire id=$alarmId wd=$weekday raw=$raw")
@@ -44,11 +44,18 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
     }
 
     private fun rawToFlutterSoundId(raw: String): String = when (raw) {
-        "alram_01" -> "Alram_01"
-        "alram_02" -> "Alram_02"
-        "alram_03" -> "Alram_03"
-        "alram_04" -> "Alram_04"
-        else -> "Alram_01"
+        "basic" -> "basic"
+        "chicken" -> "chicken"
+        "clear_horizon" -> "clear_horizon"
+        "japan_signal" -> "japan_signal"
+        "alarm_clock" -> "alarm_clock"
+        "ghibli_style" -> "ghibli_style"
+        // Backward compatibility for existing pending intents
+        "alram_01" -> "basic"
+        "alram_02" -> "chicken"
+        "alram_03" -> "clear_horizon"
+        "alram_04" -> "japan_signal"
+        else -> "basic"
     }
 
     companion object {

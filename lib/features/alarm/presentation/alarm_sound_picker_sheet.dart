@@ -125,7 +125,7 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
           const SizedBox(height: 8),
           for (final id in AlarmSoundIds.all)
             ListTile(
-              title: Text(id),
+              title: Text(AlarmSoundIds.label(id)),
               trailing: id == _selectedId ? const Icon(Icons.check) : null,
               onTap: () => _onPick(id),
             ),

@@ -35,7 +35,7 @@ object AndroidAlarmScheduler {
             val id = o.getInt("id")
             val hour = o.getInt("hour")
             val minute = o.getInt("minute")
-            val raw = o.optString("androidRaw", "alram_01")
+            val raw = o.optString("androidRaw", "basic")
             val wds = o.getJSONArray("weekdays")
             for (j in 0 until wds.length()) {
                 val wd = wds.getInt(j)
@@ -60,7 +60,7 @@ object AndroidAlarmScheduler {
             val id = o.getInt("id")
             val hour = o.getInt("hour")
             val minute = o.getInt("minute")
-            val raw = o.optString("androidRaw", "alram_01")
+            val raw = o.optString("androidRaw", "basic")
             val wds = o.getJSONArray("weekdays")
             for (j in 0 until wds.length()) {
                 val wd = wds.getInt(j)
@@ -108,7 +108,7 @@ object AndroidAlarmScheduler {
                 return Triple(
                     o.getInt("hour"),
                     o.getInt("minute"),
-                    o.optString("androidRaw", "alram_01"),
+                    o.optString("androidRaw", "basic"),
                 )
             }
         }
