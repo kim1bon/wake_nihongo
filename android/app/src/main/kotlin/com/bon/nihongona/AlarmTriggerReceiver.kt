@@ -1,4 +1,4 @@
-package com.example.wake_nihongo
+package com.bon.nihongona
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -52,7 +52,7 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_ALARM_FIRE = "com.example.wake_nihongo.ACTION_ALARM_FIRE"
+        const val ACTION_ALARM_FIRE = "com.bon.nihongona.ACTION_ALARM_FIRE"
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_WEEKDAY = "weekday"
         const val EXTRA_HOUR = "hour"

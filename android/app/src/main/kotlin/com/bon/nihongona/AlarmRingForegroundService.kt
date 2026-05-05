@@ -1,4 +1,4 @@
-package com.example.wake_nihongo
+package com.bon.nihongona
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -173,7 +173,7 @@ class AlarmRingForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "wake_nihongo_alarm_loop"
         private const val NOTIF_ID = 42001
-        private const val ACTION_STOP = "com.example.wake_nihongo.STOP_ALARM_RING"
+        private const val ACTION_STOP = "com.bon.nihongona.STOP_ALARM_RING"
         const val EXTRA_RAW = "raw_sound"
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_SOUND_ID = "sound_id_flutter"

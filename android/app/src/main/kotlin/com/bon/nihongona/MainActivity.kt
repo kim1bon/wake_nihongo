@@ -1,4 +1,4 @@
-package com.example.wake_nihongo
+package com.bon.nihongona
 
 import android.content.Context
 import android.content.Intent
@@ -101,6 +101,6 @@ class MainActivity : FlutterActivity() {
         const val EXTRA_SOUND_ID = "flutter_sound_id"
         const val EXTRA_ALARM_ID = "alarm_id"
         const val METHOD_ON_ALARM_LAUNCH_INTENT = "onAlarmLaunchIntent"
-        private const val NATIVE_CHANNEL = "com.example.wake_nihongo/alarm_native"
+        private const val NATIVE_CHANNEL = "com.bon.nihongona/alarm_native"
     }
 }

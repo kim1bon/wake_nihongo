@@ -10,7 +10,7 @@ import '../domain/alarm.dart';
 class AlarmNativeAndroid {
   AlarmNativeAndroid._();
 
-  static const _ch = MethodChannel('com.example.wake_nihongo/alarm_native');
+  static const _ch = MethodChannel('com.bon.nihongona/alarm_native');
   static const _methodOnAlarmLaunchIntent = 'onAlarmLaunchIntent';
 
   static Future<void> syncAlarms(List<Alarm> alarms) async {

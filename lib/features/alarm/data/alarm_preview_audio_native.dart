@@ -27,7 +27,7 @@ class AlarmSoundPreviewPolicy {
 class AlarmPreviewAudioNative {
   AlarmPreviewAudioNative._();
 
-  static const _ch = MethodChannel('com.example.wake_nihongo/alarm_native');
+  static const _ch = MethodChannel('com.bon.nihongona/alarm_native');
 
   static Future<AlarmSoundPreviewPolicy> getSoundPreviewPolicy() async {
     if (!Platform.isAndroid) {

@@ -1,4 +1,4 @@
-package com.example.wake_nihongo
+package com.bon.nihongona
 
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo

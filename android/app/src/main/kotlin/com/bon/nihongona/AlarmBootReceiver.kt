@@ -1,4 +1,4 @@
-package com.example.wake_nihongo
+package com.bon.nihongona
 
 import android.content.BroadcastReceiver
 import android.content.Context
