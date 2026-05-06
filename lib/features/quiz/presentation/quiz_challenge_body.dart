@@ -91,8 +91,8 @@ class QuizChallengeBody extends StatelessWidget {
           color: foreground,
         ),
         textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+        maxLines: compact ? 2 : null,
+        overflow: compact ? TextOverflow.ellipsis : TextOverflow.visible,
       );
     }
     return Column(
@@ -108,8 +108,8 @@ class QuizChallengeBody extends StatelessWidget {
             color: foreground,
           ),
           textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          maxLines: compact ? 2 : null,
+          overflow: compact ? TextOverflow.ellipsis : TextOverflow.visible,
         ),
         const SizedBox(height: 4),
         Text(
@@ -120,8 +120,8 @@ class QuizChallengeBody extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          maxLines: compact ? 2 : null,
+          overflow: compact ? TextOverflow.ellipsis : TextOverflow.visible,
         ),
       ],
     );
@@ -161,6 +161,54 @@ class QuizChallengeBody extends StatelessWidget {
           };
 
           if (useAlarmStyleLayout) {
+            Widget buildChoiceButton(int i) {
+              final label = question.choices[i];
+              final showCorrectFill =
+                  correctHighlightIndex != null && correctHighlightIndex == i;
+              final showWrongFill =
+                  feedbackWrong && wrongPickIndex != null && wrongPickIndex == i;
+              final background = showCorrectFill
+                  ? theme.colorScheme.secondary
+                  : showWrongFill
+                      ? theme.colorScheme.error
+                      : AppPalette.beigeSoft;
+              final foreground = showCorrectFill
+                  ? theme.colorScheme.onSecondary
+                  : showWrongFill
+                      ? theme.colorScheme.onError
+                      : theme.colorScheme.onSurface;
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: background,
+                  foregroundColor: foreground,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
+                      color: showCorrectFill
+                          ? theme.colorScheme.secondary.withValues(alpha: 0.9)
+                          : showWrongFill
+                              ? theme.colorScheme.error.withValues(alpha: 0.9)
+                              : AppPalette.navy.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 10,
+                  ),
+                ),
+                onPressed: () => onPickIndex(i),
+                child: _choiceButtonChild(
+                  theme,
+                  i,
+                  label,
+                  foreground,
+                  forceSingleColumnChoices,
+                ),
+              );
+            }
+
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wn = context.wnColors;
@@ -278,74 +326,38 @@ class QuizChallengeBody extends StatelessWidget {
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            itemCount: question.choices.length,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: choiceGridCrossAxisCount,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: choiceGridChildAspectRatio,
+                          if (choiceGridCrossAxisCount == 1)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (var i = 0; i < question.choices.length; i++) ...[
+                                  buildChoiceButton(i),
+                                  if (i != question.choices.length - 1)
+                                    const SizedBox(height: 10),
+                                ],
+                              ],
+                            )
+                          else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (var i = 0; i < question.choices.length; i += 2) ...[
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Expanded(child: buildChoiceButton(i)),
+                                      const SizedBox(width: 10),
+                                      if (i + 1 < question.choices.length)
+                                        Expanded(child: buildChoiceButton(i + 1))
+                                      else
+                                        const Expanded(child: SizedBox.shrink()),
+                                    ],
+                                  ),
+                                  if (i + 2 < question.choices.length)
+                                    const SizedBox(height: 10),
+                                ],
+                              ],
                             ),
-                            itemBuilder: (context, i) {
-                              final label = question.choices[i];
-                              final showCorrectFill =
-                                  correctHighlightIndex != null &&
-                                  correctHighlightIndex == i;
-                              final showWrongFill =
-                                  feedbackWrong &&
-                                  wrongPickIndex != null &&
-                                  wrongPickIndex == i;
-                              final background = showCorrectFill
-                                  ? theme.colorScheme.secondary
-                                  : showWrongFill
-                                      ? theme.colorScheme.error
-                                      : AppPalette.beigeSoft;
-                              final foreground = showCorrectFill
-                                  ? theme.colorScheme.onSecondary
-                                  : showWrongFill
-                                      ? theme.colorScheme.onError
-                                      : theme.colorScheme.onSurface;
-
-                              return ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  elevation: 0,
-                                  backgroundColor: background,
-                                  foregroundColor: foreground,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    side: BorderSide(
-                                      width: showCorrectFill || showWrongFill
-                                          ? 1.2
-                                          : 0.8,
-                                      color: showCorrectFill
-                                          ? theme.colorScheme.secondary
-                                              .withValues(alpha: 0.9)
-                                          : showWrongFill
-                                              ? theme.colorScheme.error
-                                                  .withValues(alpha: 0.9)
-                                              : AppPalette.navy
-                                                  .withValues(alpha: 0.10),
-                                    ),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 10,
-                                  ),
-                                ),
-                                onPressed: () => onPickIndex(i),
-                                child: _choiceButtonChild(
-                                  theme,
-                                  i,
-                                  label,
-                                  foreground,
-                                  forceSingleColumnChoices,
-                                ),
-                              );
-                            },
-                          ),
                         ],
                       ),
                     ),
