@@ -143,31 +143,36 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            QuizChallengeBody(
-              question: q,
-              feedbackWrong: _wrong,
-              wrongPickIndex: _wrongPickIndex,
-              correctHighlightIndex: _correctPickIndex,
-              onPickIndex: (i) {
-                if (i == q.correctChoiceIndex) {
-                  setState(() {
-                    _wrong = false;
-                    _wrongPickIndex = null;
-                    _correctPickIndex = q.correctChoiceIndex;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('정답입니다.')),
-                  );
-                } else {
-                  setState(() {
-                    _wrong = true;
-                    _wrongPickIndex = i;
-                    _correctPickIndex = null;
-                  });
-                }
-              },
+            Expanded(
+              child: SingleChildScrollView(
+                child: QuizChallengeBody(
+                  question: q,
+                  forceSingleColumnChoices: true,
+                  feedbackWrong: _wrong,
+                  wrongPickIndex: _wrongPickIndex,
+                  correctHighlightIndex: _correctPickIndex,
+                  onPickIndex: (i) {
+                    if (i == q.correctChoiceIndex) {
+                      setState(() {
+                        _wrong = false;
+                        _wrongPickIndex = null;
+                        _correctPickIndex = q.correctChoiceIndex;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('정답입니다.')),
+                      );
+                    } else {
+                      setState(() {
+                        _wrong = true;
+                        _wrongPickIndex = i;
+                        _correctPickIndex = null;
+                      });
+                    }
+                  },
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: _rollQuestion,
               icon: const Icon(Icons.refresh),

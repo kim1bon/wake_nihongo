@@ -11,6 +11,7 @@ class QuizChallengeBody extends StatelessWidget {
     required this.question,
     required this.onPickIndex,
     this.useAlarmStyleLayout = false,
+    this.forceSingleColumnChoices = false,
     this.thumbnailAssetPath,
     this.feedbackWrong = false,
 
@@ -24,6 +25,7 @@ class QuizChallengeBody extends StatelessWidget {
   final QuizChallengeQuestion question;
   final void Function(int index) onPickIndex;
   final bool useAlarmStyleLayout;
+  final bool forceSingleColumnChoices;
   final String? thumbnailAssetPath;
   final bool feedbackWrong;
   final int? wrongPickIndex;
@@ -74,6 +76,7 @@ class QuizChallengeBody extends StatelessWidget {
     int index,
     String label,
     Color foreground,
+    bool compact,
   ) {
     final raw = index < question.choiceKorPronunciations.length
         ? question.choiceKorPronunciations[index]
@@ -82,7 +85,8 @@ class QuizChallengeBody extends StatelessWidget {
     if (sub == null || sub.isEmpty) {
       return Text(
         label,
-        style: theme.textTheme.titleLarge?.copyWith(
+        style: (compact ? theme.textTheme.titleMedium : theme.textTheme.titleLarge)
+            ?.copyWith(
           fontWeight: FontWeight.w800,
           color: foreground,
         ),
@@ -97,7 +101,9 @@ class QuizChallengeBody extends StatelessWidget {
       children: [
         Text(
           label,
-          style: theme.textTheme.titleLarge?.copyWith(
+          style:
+              (compact ? theme.textTheme.titleMedium : theme.textTheme.titleLarge)
+                  ?.copyWith(
             fontWeight: FontWeight.w800,
             color: foreground,
           ),
@@ -109,6 +115,7 @@ class QuizChallengeBody extends StatelessWidget {
         Text(
           sub,
           style: theme.textTheme.bodySmall?.copyWith(
+            fontSize: compact ? 11 : null,
             color: foreground.withValues(alpha: 0.88),
             fontWeight: FontWeight.w600,
           ),
@@ -136,12 +143,19 @@ class QuizChallengeBody extends StatelessWidget {
           final typeLabel = isSentence
               ? '2지선다 · ${question.type}'
               : '4지선다 · ${question.type}';
-          /// sentence(2지): 1×2 세로 스택. 그 외 4지: 2×2.
-          final choiceGridCrossAxisCount = isSentence ? 1 : 2;
+          /// sentence(2지): 기본 1열, 4지선다는 기본 2열이지만
+          /// [forceSingleColumnChoices]가 true이면 항상 1열(세로 스택)로 배치합니다.
+          final isSingleColumn = forceSingleColumnChoices || isSentence;
+          final choiceGridCrossAxisCount = isSingleColumn ? 1 : 2;
           /// 한→일은 발음 보조 줄 때문에 셀을 조금 더 높게.
-          final choiceGridChildAspectRatio = switch ((isSentence, question.mode)) {
-            (true, QuizPromptMode.korToJp) => 2.85,
-            (true, _) => 3.4,
+          /// 1열(연습 모드·sentence)은 현재보다 약 50% 더 낮게 보이도록 가로:세로 비를 키웁니다.
+          final choiceGridChildAspectRatio =
+              switch ((isSingleColumn, question.mode)) {
+            // 연습 퀴즈(1열) 슬롯 높이를 기존 대비 약 2/3 수준으로 줄이기 위해
+            // childAspectRatio를 약 1.5배로 증가시킵니다.
+            (true, QuizPromptMode.korToJp) => 5.1, // 기존 3.4 * 1.5
+            (true, _) => 5.7,                      // 기존 3.8 * 1.5
+            // 2열(기존 알람 퀴즈 레이아웃)은 기존 값 유지
             (false, QuizPromptMode.korToJp) => 1.95,
             (false, _) => 2.3,
           };
@@ -287,13 +301,13 @@ class QuizChallengeBody extends StatelessWidget {
                               final background = showCorrectFill
                                   ? theme.colorScheme.secondary
                                   : showWrongFill
-                                  ? theme.colorScheme.error
-                                  : AppPalette.beigeSoft;
+                                      ? theme.colorScheme.error
+                                      : AppPalette.beigeSoft;
                               final foreground = showCorrectFill
                                   ? theme.colorScheme.onSecondary
                                   : showWrongFill
-                                  ? theme.colorScheme.onError
-                                  : theme.colorScheme.onSurface;
+                                      ? theme.colorScheme.onError
+                                      : theme.colorScheme.onSurface;
 
                               return ElevatedButton(
                                 style: ElevatedButton.styleFrom(
@@ -302,9 +316,22 @@ class QuizChallengeBody extends StatelessWidget {
                                   foregroundColor: foreground,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
+                                    side: BorderSide(
+                                      width: showCorrectFill || showWrongFill
+                                          ? 1.2
+                                          : 0.8,
+                                      color: showCorrectFill
+                                          ? theme.colorScheme.secondary
+                                              .withValues(alpha: 0.9)
+                                          : showWrongFill
+                                              ? theme.colorScheme.error
+                                                  .withValues(alpha: 0.9)
+                                              : AppPalette.navy
+                                                  .withValues(alpha: 0.10),
+                                    ),
                                   ),
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
+                                    vertical: 4,
                                     horizontal: 10,
                                   ),
                                 ),
@@ -314,6 +341,7 @@ class QuizChallengeBody extends StatelessWidget {
                                   i,
                                   label,
                                   foreground,
+                                  forceSingleColumnChoices,
                                 ),
                               );
                             },
@@ -390,13 +418,13 @@ class QuizChallengeBody extends StatelessWidget {
                   final background = showCorrectFill
                       ? theme.colorScheme.secondary
                       : showWrongFill
-                      ? theme.colorScheme.error
-                      : AppPalette.beigeSoft;
+                          ? theme.colorScheme.error
+                          : AppPalette.beigeSoft;
                   final foreground = showCorrectFill
                       ? theme.colorScheme.onSecondary
                       : showWrongFill
-                      ? theme.colorScheme.onError
-                      : theme.colorScheme.onSurface;
+                          ? theme.colorScheme.onError
+                          : theme.colorScheme.onSurface;
 
                   return ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -405,9 +433,19 @@ class QuizChallengeBody extends StatelessWidget {
                       foregroundColor: foreground,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                          width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
+                          color: showCorrectFill
+                              ? theme.colorScheme.secondary
+                                  .withValues(alpha: 0.9)
+                              : showWrongFill
+                                  ? theme.colorScheme.error
+                                      .withValues(alpha: 0.9)
+                                  : AppPalette.navy.withValues(alpha: 0.10),
+                        ),
                       ),
                       padding: const EdgeInsets.symmetric(
-                        vertical: 12,
+                        vertical: 4,
                         horizontal: 10,
                       ),
                     ),
@@ -417,6 +455,7 @@ class QuizChallengeBody extends StatelessWidget {
                       i,
                       label,
                       foreground,
+                      forceSingleColumnChoices,
                     ),
                   );
                 },

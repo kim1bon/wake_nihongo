@@ -943,6 +943,30 @@ class _JapaneseDialTimePickerDialogState
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 74,
+                      child: Column(
+                        children: [
+                          _buildMeridiemButton(
+                            context: context,
+                            text: '오전',
+                            selected: !_isPm,
+                            onTap: () => setState(() => _isPm = false),
+                          ),
+                          const SizedBox(height: 6),
+                          _buildMeridiemButton(
+                            context: context,
+                            text: '오후',
+                            selected: _isPm,
+                            onTap: () => setState(() => _isPm = true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
                     flex: 5,
                     child: Row(
                       children: [
@@ -971,30 +995,6 @@ class _JapaneseDialTimePickerDialogState
                               setState(() => _mode = _DialSelectMode.minute),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 74,
-                      child: Column(
-                        children: [
-                          _buildMeridiemButton(
-                            context: context,
-                            text: '오전',
-                            selected: !_isPm,
-                            onTap: () => setState(() => _isPm = false),
-                          ),
-                          const SizedBox(height: 6),
-                          _buildMeridiemButton(
-                            context: context,
-                            text: '오후',
-                            selected: _isPm,
-                            onTap: () => setState(() => _isPm = true),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
