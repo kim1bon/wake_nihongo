@@ -79,6 +79,7 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - assets/images/Backgrounds/
     - assets/questions/wake_nihongo_sample.csv
     - assets/questions/basic_learning.csv
     - assets/fonts/Noto_Sans_KR/OFL.txt

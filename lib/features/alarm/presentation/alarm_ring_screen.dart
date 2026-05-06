@@ -210,6 +210,28 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
     }
   }
 
+  /// 현재 퀴즈 카테고리에 맞는 배경 이미지 asset 경로를 반환합니다.
+  /// - "기초 1", "기초 2", "일상대화": 주택가 거리 배경
+  /// - "쇼핑": 쇼핑 거리 배경
+  /// - "식당": 이자카야/식당 골목 배경
+  /// - 그 외: 기본적으로 주택가 거리 배경
+  String _resolveBackgroundAsset() {
+    final q = _question;
+    final category = q?.category.trim() ?? '';
+    switch (category) {
+      case '기초 1':
+      case '기초 2':
+      case '일상대화':
+        return 'assets/images/Backgrounds/Tx_bg_HouseStreet.png';
+      case '쇼핑':
+        return 'assets/images/Backgrounds/Tx_bg_ShoppingStreet.png';
+      case '식당':
+        return 'assets/images/Backgrounds/Tx_bg_IzakayaStreet.png';
+      default:
+        return 'assets/images/Backgrounds/Tx_bg_HouseStreet.png';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -224,6 +246,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
           onStopAlarm: () {
             unawaited(_onDismissPressed());
           },
+          backgroundAssetPath: _resolveBackgroundAsset(),
         ),
       );
     }
@@ -235,7 +258,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
           children: [
             Positioned.fill(
               child: Image.asset(
-                'assets/images/Tx_Background.png',
+                _resolveBackgroundAsset(),
                 fit: BoxFit.cover,
               ),
             ),
