@@ -38,6 +38,9 @@ abstract class AlarmRepository {
     required int delayMinutes,
   });
 
+  /// 알람 해제 직후 남아있는 iOS 체인 슬롯/다시 알림을 정리하고 주간 스케줄만 복원합니다.
+  Future<void> refreshScheduleAfterDismiss(int alarmId);
+
   Future<void> setAlarmEnabled(int id, bool enabled);
 
   /// Re-register all notifications from local data (e.g. after reboot or app update).

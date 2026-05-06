@@ -148,4 +148,17 @@ class AlarmRepositoryImpl implements AlarmRepository {
       delayMinutes: delayMinutes.clamp(1, 15),
     );
   }
+
+  @override
+  Future<void> refreshScheduleAfterDismiss(int alarmId) async {
+    if (alarmId < 0) return;
+    final alarm = await _dataSource.getById(alarmId);
+    if (alarm == null) return;
+
+    await _scheduler.cancelAllSlotsForAlarmId(alarmId);
+    if (alarm.enabled) {
+      await _scheduler.schedule(alarm);
+    }
+    await AlarmNativeAndroid.syncAlarms(await _dataSource.getAll());
+  }
 }

@@ -97,7 +97,7 @@ class AlarmRingCoordinator {
               await AlarmPendingStateStore.clear();
               if (alarmId >= 0) {
                 await AlarmRescheduleSessionStore.clearForAlarm(alarmId);
-                await AlarmServices.alarmRepository?.cancelPendingReschedule(alarmId);
+                await AlarmServices.alarmRepository?.refreshScheduleAfterDismiss(alarmId);
               }
               if (Platform.isAndroid) {
                 await AlarmNativeAndroid.stopRinging();

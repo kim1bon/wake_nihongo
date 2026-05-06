@@ -213,7 +213,6 @@ class QuizChallengeBody extends StatelessWidget {
               builder: (context, constraints) {
                 final wn = context.wnColors;
                 final cardWidth = constraints.maxWidth;
-                final viewportHeight = constraints.maxHeight;
                 final bubbleFill = Color.alphaBlend(
                   AppPalette.beige.withValues(alpha: 0.12),
                   Colors.white.withValues(alpha: 0.42),
@@ -226,139 +225,118 @@ class QuizChallengeBody extends StatelessWidget {
                 final tailBottom = bubbleBottomGap + 2;
                 final tailWidth = (thumbnailSize * 0.40).clamp(28.0, 38.0);
                 final tailHeight = (thumbnailSize * 0.33).clamp(22.0, 30.0);
-                const minResponsiveHeight = 568.0; // iPhone SE 1세대 높이 기준
-                const maxResponsiveHeight = 760.0;
-                final heightRatio =
-                    ((viewportHeight - minResponsiveHeight) /
-                            (maxResponsiveHeight - minResponsiveHeight))
-                        .clamp(0.0, 1.0);
-                final bubbleTopOffset = 80.0 + (20.0 * heightRatio);
-
-                return Stack(
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Positioned(
-                      top: bubbleTopOffset,
-                      left: 0,
-                      right: 0,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            margin: EdgeInsets.only(bottom: bubbleBottomGap),
-                            padding: const EdgeInsets.fromLTRB(18, 22, 18, 28),
-                            decoration: BoxDecoration(
-                              color: bubbleFill,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: wn.quizBubbleBorder),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  typeLabel,
-                                  style: theme.textTheme.labelLarge?.copyWith(
-                                    color: theme.colorScheme.secondary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _buildPromptTexts(theme, question),
-                              ],
-                            ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          margin: EdgeInsets.only(bottom: bubbleBottomGap),
+                          padding: const EdgeInsets.fromLTRB(18, 22, 18, 28),
+                          decoration: BoxDecoration(
+                            color: bubbleFill,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: wn.quizBubbleBorder),
                           ),
-                          Positioned(
-                            right: tailRight,
-                            bottom: tailBottom,
-                            child: _SpeechBubbleTail(
-                              width: tailWidth,
-                              height: tailHeight,
-                              fillColor: bubbleFill,
-                              borderColor: wn.quizTailBorder,
-                            ),
-                          ),
-                          if (thumbnailAssetPath != null)
-                            Positioned(
-                              right: thumbnailRight,
-                              bottom: 0,
-                              child: Container(
-                                width: thumbnailSize,
-                                height: thumbnailSize,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: wn.quizThumbnailRing,
-                                    width: 3,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x33000000),
-                                      blurRadius: 10,
-                                      offset: Offset(0, 4),
-                                    ),
-                                  ],
-                                  image: DecorationImage(
-                                    image: AssetImage(thumbnailAssetPath!),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (feedbackWrong)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                _wrongFeedbackMessage(),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.error,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                typeLabel,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: theme.colorScheme.secondary,
                                   fontWeight: FontWeight.w700,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          if (choiceGridCrossAxisCount == 1)
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (var i = 0; i < question.choices.length; i++) ...[
-                                  buildChoiceButton(i),
-                                  if (i != question.choices.length - 1)
-                                    const SizedBox(height: 10),
-                                ],
-                              ],
-                            )
-                          else
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                for (var i = 0; i < question.choices.length; i += 2) ...[
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(child: buildChoiceButton(i)),
-                                      const SizedBox(width: 10),
-                                      if (i + 1 < question.choices.length)
-                                        Expanded(child: buildChoiceButton(i + 1))
-                                      else
-                                        const Expanded(child: SizedBox.shrink()),
-                                    ],
+                              const SizedBox(height: 12),
+                              _buildPromptTexts(theme, question),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          right: tailRight,
+                          bottom: tailBottom,
+                          child: _SpeechBubbleTail(
+                            width: tailWidth,
+                            height: tailHeight,
+                            fillColor: bubbleFill,
+                            borderColor: wn.quizTailBorder,
+                          ),
+                        ),
+                        if (thumbnailAssetPath != null)
+                          Positioned(
+                            right: thumbnailRight,
+                            bottom: 0,
+                            child: Container(
+                              width: thumbnailSize,
+                              height: thumbnailSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: wn.quizThumbnailRing,
+                                  width: 3,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x33000000),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
                                   ),
-                                  if (i + 2 < question.choices.length)
-                                    const SizedBox(height: 10),
                                 ],
-                              ],
-                            ),
-                        ],
+                                image: DecorationImage(
+                                  image: AssetImage(thumbnailAssetPath!),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            )
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (feedbackWrong)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          _wrongFeedbackMessage(),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (choiceGridCrossAxisCount == 1)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (var i = 0; i < question.choices.length; i++) ...[
+                                    buildChoiceButton(i),
+                                    if (i != question.choices.length - 1)
+                                      const SizedBox(height: 10),
+                                  ],
+                                ],
+                              )
+                            else
+                              GridView.builder(
+                                shrinkWrap: true,
+                                itemCount: question.choices.length,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  childAspectRatio: 2.3,
+                                ),
+                                itemBuilder: (context, i) => buildChoiceButton(i),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
