@@ -27,6 +27,18 @@ abstract final class AppTheme {
       textTheme: textTheme,
       primaryTextTheme: primaryTextTheme,
       scaffoldBackgroundColor: AppPalette.beigeSoft,
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppPalette.beigeSoft,
+        foregroundColor: AppPalette.navy,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: AppPalette.navy,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
       cardTheme: CardThemeData(
         color: AppPalette.beigeContainer,
         surfaceTintColor: Colors.transparent,

@@ -184,20 +184,110 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
     final shouldUpdate = await showDialog<bool>(
       context: uiContext,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('퀴즈 버전 확인'),
-        content: const Text('퀴즈 버전이 다릅니다. 갱신하겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('아니오'),
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('예'),
+          backgroundColor: AppPalette.beigeSoft,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: AppPalette.green.withValues(alpha: 0.28),
+            ),
           ),
-        ],
-      ),
+          titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 6),
+          contentPadding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 2, 16, 18),
+          title: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppPalette.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.quiz_outlined,
+                  size: 20,
+                  color: AppPalette.green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '퀴즈 버전 확인',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.navy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 360,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: AppPalette.beigeContainer,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppPalette.green.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Text(
+                '퀴즈 버전이 다릅니다. 갱신하겠습니까?',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                  color: AppPalette.navy,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppPalette.navy.withValues(alpha: 0.9),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: AppPalette.navy.withValues(alpha: 0.18),
+                        ),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('아니오'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppPalette.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text('예'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
     if (!mounted) return;
     if (shouldUpdate != true) {
@@ -247,18 +337,91 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
     await showDialog<void>(
       context: uiContext,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('알림'),
-        content: Text(
-          '퀴즈 버전 ${result.previousQuizVersion} → ${result.currentQuizVersion}으로 갱신되었습니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('확인'),
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 24,
           ),
-        ],
-      ),
+          backgroundColor: AppPalette.beigeSoft,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: AppPalette.green.withValues(alpha: 0.28),
+            ),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 6),
+          contentPadding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 2, 16, 18),
+          title: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppPalette.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.check_circle_outline,
+                  size: 20,
+                  color: AppPalette.green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '알림',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppPalette.navy,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 360,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: AppPalette.beigeContainer,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppPalette.green.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Text(
+                '퀴즈 버전 ${result.previousQuizVersion} → '
+                '${result.currentQuizVersion}으로 갱신되었습니다.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.45,
+                  color: AppPalette.navy,
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppPalette.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('확인'),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

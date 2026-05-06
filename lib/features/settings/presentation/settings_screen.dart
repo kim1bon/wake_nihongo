@@ -218,26 +218,112 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () {
                     showDialog<void>(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('iOS 알림 설정 가이드'),
-                        content: const Text(
-                          '아래 설정을 확인해 주세요.\n\n'
-                          '1) 설정 > 알림 > 일어나\n'
-                          ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
-                          ' - 시간 민감 알림(Time Sensitive) ON\n\n'
-                          '2) 설정 > 집중 모드(Focus)\n'
-                          ' - 일어나 알림 허용\n\n'
-                          '3) 설정 > 사운드 및 햅틱\n'
-                          ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
-                          '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 100% 강제할 수는 없습니다.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('확인'),
+                      builder: (dialogContext) {
+                        final theme = Theme.of(dialogContext);
+                        return AlertDialog(
+                          insetPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 24,
                           ),
-                        ],
-                      ),
+                          backgroundColor: AppPalette.beigeSoft,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            side: BorderSide(
+                              color: AppPalette.green.withValues(alpha: 0.28),
+                            ),
+                          ),
+                          titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 6),
+                          contentPadding:
+                              const EdgeInsets.fromLTRB(18, 10, 18, 10),
+                          actionsPadding:
+                              const EdgeInsets.fromLTRB(16, 2, 16, 18),
+                          title: Row(
+                            children: [
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: AppPalette.green.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.phone_iphone,
+                                  size: 20,
+                                  color: AppPalette.green,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'iOS 알림 설정 가이드',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppPalette.navy,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: SizedBox(
+                            width: 360,
+                            child: SingleChildScrollView(
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  14,
+                                  14,
+                                  14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppPalette.beigeContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppPalette.green
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Text(
+                                  '아래 설정을 확인해 주세요.\n\n'
+                                  '1) 설정 > 알림 > 일어나\n'
+                                  ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
+                                  ' - 시간 민감 알림(Time Sensitive) ON\n\n'
+                                  '2) 설정 > 집중 모드(Focus)\n'
+                                  ' - 일어나 알림 허용\n\n'
+                                  '3) 설정 > 사운드 및 햅틱\n'
+                                  ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
+                                  '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 '
+                                  '100% 강제할 수는 없습니다.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    height: 1.45,
+                                    color: AppPalette.navy,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          actions: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppPalette.green,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                ),
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
+                                child: const Text('확인'),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
