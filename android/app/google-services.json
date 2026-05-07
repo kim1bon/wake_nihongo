@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951483203031",
+    "project_id": "nihongona-fd36e",
+    "storage_bucket": "nihongona-fd36e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951483203031:android:e25ca0a4a37584cb96df92",
+        "android_client_info": {
+          "package_name": "com.bon.nihongona"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDF6xYoZ6jQ2jLPSa3ZfAGisSkmwgyPe88"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
