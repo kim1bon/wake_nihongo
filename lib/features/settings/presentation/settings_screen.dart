@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../core/theme/theme.dart';
 import '../../alarm/presentation/alarm_providers.dart';
+import '../../auth/presentation/auth_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
 import '../../quiz/domain/quiz_prompt_mode.dart';
 import '../../quiz/presentation/quiz_providers.dart';
@@ -143,6 +145,191 @@ Future<void> _toggleLevelForCategory({
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  String _providerLabel(User user) {
+    final provider = user.providerData.isNotEmpty
+        ? user.providerData.first.providerId
+        : 'unknown';
+    return switch (provider) {
+      'apple.com' => 'Apple 로그인',
+      'google.com' => 'Google 로그인',
+      _ => '연동 계정',
+    };
+  }
+
+  String _accountDisplayName(User user) {
+    final name = user.displayName?.trim() ?? '';
+    if (name.isNotEmpty) return name;
+    final email = user.email?.trim() ?? '';
+    if (email.isNotEmpty) return email;
+    return '연동 계정';
+  }
+
+  Future<void> _handlePlatformLogin(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    try {
+      await ref.read(authRepositoryProvider).signInWithPlatformProvider();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인되었습니다.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? '로그인에 실패했습니다.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인 처리 중 오류가 발생했습니다.')),
+      );
+    }
+  }
+
+  Future<void> _showAccountDetails(
+    BuildContext context,
+    WidgetRef ref,
+    User user,
+  ) async {
+    final providerLabel = _providerLabel(user);
+    final accountName = _accountDisplayName(user);
+    final email = user.email?.trim();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '계정 정보',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('이름'),
+                  subtitle: Text(accountName),
+                ),
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.badge_outlined),
+                  title: const Text('로그인 방식'),
+                  subtitle: Text(providerLabel),
+                ),
+                if (email != null && email.isNotEmpty)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.mail_outline),
+                    title: const Text('이메일'),
+                    subtitle: Text(email),
+                  ),
+                const SizedBox(height: 12),
+                FilledButton.tonal(
+                  onPressed: () async {
+                    try {
+                      await ref.read(authRepositoryProvider).signOut();
+                      if (sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('로그아웃되었습니다.')),
+                        );
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.message ?? '로그아웃에 실패했습니다.')),
+                      );
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('로그아웃 처리 중 오류가 발생했습니다.')),
+                      );
+                    }
+                  },
+                  child: const Text('로그아웃'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    side: BorderSide(color: theme.colorScheme.error),
+                  ),
+                  onPressed: () async {
+                    final shouldDelete = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) {
+                        return AlertDialog(
+                          title: const Text('계정을 삭제할까요?'),
+                          content: const Text(
+                            '계정 삭제 후에는 복구할 수 없습니다.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogContext).pop(false),
+                              child: const Text('취소'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.of(dialogContext).pop(true),
+                              child: const Text('삭제'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    if (shouldDelete != true) return;
+
+                    try {
+                      await ref.read(authRepositoryProvider).deleteCurrentAccount();
+                      if (sheetContext.mounted) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('계정이 삭제되었습니다.')),
+                        );
+                      }
+                    } on FirebaseAuthException catch (e) {
+                      if (!context.mounted) return;
+                      final message = e.code == 'requires-recent-login'
+                          ? '보안을 위해 최근 로그인 후 다시 시도해 주세요.'
+                          : (e.message ?? '계정 삭제에 실패했습니다.');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(message)),
+                      );
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('계정 삭제 처리 중 오류가 발생했습니다.')),
+                      );
+                    }
+                  },
+                  child: const Text('계정 삭제'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -166,6 +353,7 @@ class SettingsScreen extends ConsumerWidget {
     final quizPromptModeAsync = ref.watch(quizPromptModeProvider);
     final localQuizVersionAsync = ref.watch(localQuizVersionProvider);
     final remoteQuizVersionAsync = ref.watch(remoteQuizVersionProvider);
+    final authStateAsync = ref.watch(authStateChangesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -181,6 +369,51 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text(
+              '계정',
+              style: sectionTitleStyle,
+            ),
+          ),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: authStateAsync.when(
+              loading: () => const ListTile(
+                leading: Icon(Icons.person_outline),
+                title: Text('로그인 상태 확인 중...'),
+              ),
+              error: (e, _) => ListTile(
+                leading: const Icon(Icons.error_outline),
+                title: const Text('로그인 상태를 불러오지 못했습니다.'),
+                subtitle: Text('$e'),
+              ),
+              data: (user) {
+                final needLogin = user == null || user.isAnonymous;
+                if (needLogin) {
+                  return ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: const Text('로그인'),
+                    subtitle: const Text('로그인이 필요해요'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _handlePlatformLogin(context, ref),
+                  );
+                }
+
+                final providerLabel = _providerLabel(user);
+                final accountName = _accountDisplayName(user);
+
+                return ListTile(
+                  leading: const Icon(Icons.verified_user_outlined),
+                  title: Text(accountName),
+                  subtitle: Text(providerLabel),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showAccountDetails(context, ref, user),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(

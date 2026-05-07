@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +12,7 @@ import '../core/constants/alarm_sound_ids.dart';
 import '../core/theme/theme.dart';
 import '../features/alarm/data/alarm_native_android.dart';
 import '../features/alarm/presentation/alarm_providers.dart';
+import '../features/auth/data/firebase_auth_service.dart';
 import '../features/quiz/data/quiz_repository.dart';
 import '../features/quiz/presentation/quiz_providers.dart';
 import 'alarm_ring_coordinator.dart';
@@ -26,9 +29,11 @@ class WakeNihongoApp extends ConsumerStatefulWidget {
 class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
     with WidgetsBindingObserver {
   final _quizRepository = QuizRepository();
+  final _authService = FirebaseAuthService(FirebaseAuth.instance);
   Timer? _iosForegroundAlarmTimer;
   final Map<String, DateTime> _iosForegroundFiredAt = <String, DateTime>{};
   final Map<String, DateTime> _androidForegroundFiredAt = <String, DateTime>{};
+  bool _profilePromptShown = false;
 
   String _buildAndroidFireKey({
     required String soundId,
@@ -79,25 +84,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_syncQuizOnLaunch());
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final pending = PendingAlarmLaunch.notificationResponse;
-      PendingAlarmLaunch.notificationResponse = null;
-      if (pending != null) {
-        unawaited(
-          AlarmRingCoordinator.handleNotificationResponseWhenNavigatorReady(
-            pending,
-          ),
-        );
-      }
-      unawaited(AlarmRingCoordinator.restorePendingAlarmIfAny());
-      if (Platform.isAndroid) {
-        final map = await AlarmNativeAndroid.takePendingAlarmLaunch();
-        if (map != null) {
-          unawaited(_handleAndroidAlarmLaunchPayload(map));
-        }
-      }
+      unawaited(_runStartupSequence());
     });
     if (Platform.isIOS) {
       _startIosForegroundAlarmWatcher();
@@ -166,6 +153,393 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
 
     final cutoff = now.subtract(const Duration(hours: 2));
     _iosForegroundFiredAt.removeWhere((_, firedAt) => firedAt.isBefore(cutoff));
+  }
+
+  Future<void> _runStartupSequence() async {
+    // 1) 성별/연령대 팝업
+    await _ensureProfileOnFirstLaunch();
+    if (!mounted) return;
+
+    // 2) 알람 권한 팝업
+    await ref.read(alarmRepositoryProvider).ensureNotificationPermissions();
+    if (!mounted) return;
+
+    // 3) 구글 시트 갱신 팝업
+    await _syncQuizOnLaunch();
+    if (!mounted) return;
+
+    final pending = PendingAlarmLaunch.notificationResponse;
+    PendingAlarmLaunch.notificationResponse = null;
+    if (pending != null) {
+      unawaited(
+        AlarmRingCoordinator.handleNotificationResponseWhenNavigatorReady(
+          pending,
+        ),
+      );
+    }
+    unawaited(AlarmRingCoordinator.restorePendingAlarmIfAny());
+    if (Platform.isAndroid) {
+      final map = await AlarmNativeAndroid.takePendingAlarmLaunch();
+      if (map != null) {
+        unawaited(_handleAndroidAlarmLaunchPayload(map));
+      }
+    }
+  }
+
+  Future<void> _ensureProfileOnFirstLaunch() async {
+    if (!mounted || _profilePromptShown) return;
+    final shouldShow = await _shouldShowProfilePrompt();
+    if (!mounted || !shouldShow) return;
+    _profilePromptShown = true;
+    final navContext = await _waitForNavigatorContext();
+    if (!mounted || navContext == null) {
+      _profilePromptShown = false;
+      return;
+    }
+
+    final input = await showModalBottomSheet<_UserProfileInput>(
+      context: navContext,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        String? selectedGender;
+        String? selectedAgeBracket;
+        const ageOptions = <_AgeChip>[
+          _AgeChip(label: '18세 미만', value: 'under18'),
+          _AgeChip(label: '18~24세', value: '18_24'),
+          _AgeChip(label: '25~29세', value: '25_29'),
+          _AgeChip(label: '30~34세', value: '30_34'),
+          _AgeChip(label: '35~39세', value: '35_39'),
+          _AgeChip(label: '40세 이상', value: '40_plus'),
+        ];
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final canSubmit =
+                selectedGender != null && selectedAgeBracket != null;
+            final theme = Theme.of(context);
+            final screenWidth = MediaQuery.of(context).size.width;
+            final compact = screenWidth <= 420;
+            return Padding(
+              padding: EdgeInsets.only(
+                left: compact ? 14 : 20,
+                right: compact ? 14 : 20,
+                top: compact ? 12 : 18,
+                bottom: MediaQuery.of(context).viewInsets.bottom + (compact ? 14 : 20),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * (compact ? 0.84 : 0.88),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                  Container(
+                    width: compact ? 40 : 46,
+                    height: compact ? 40 : 46,
+                    decoration: BoxDecoration(
+                      color: AppPalette.green.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.badge_outlined,
+                      color: AppPalette.green,
+                      size: compact ? 20 : 24,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 8 : 12),
+                  Text(
+                    '기본 정보 설정',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppPalette.navy,
+                      fontSize: compact ? 20 : null,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '통계 분석을 위해 성별과 연령대를 선택해 주세요.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppPalette.navy.withValues(alpha: 0.75),
+                      height: 1.35,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 6 : 8),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    decoration: BoxDecoration(
+                      color: AppPalette.green.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppPalette.green.withValues(alpha: 0.24),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: compact ? 14 : 16,
+                          color: AppPalette.navy.withValues(alpha: 0.8),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '수집한 정보는 더 효율적인 학습 내용 제공을 위한 통계 목적으로 사용됩니다.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppPalette.navy.withValues(alpha: 0.78),
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: compact ? 10 : 14),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.fromLTRB(
+                              compact ? 10 : 14,
+                              compact ? 8 : 12,
+                              compact ? 10 : 14,
+                              compact ? 4 : 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppPalette.beigeContainer,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppPalette.green.withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '성별',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: AppPalette.navy,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                RadioListTile<String>(
+                                  value: 'male',
+                                  groupValue: selectedGender,
+                                  onChanged: (v) => setDialogState(() => selectedGender = v),
+                                  title: Text('남', style: theme.textTheme.bodyMedium),
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  visualDensity: const VisualDensity(vertical: -2),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  activeColor: AppPalette.green,
+                                ),
+                                RadioListTile<String>(
+                                  value: 'female',
+                                  groupValue: selectedGender,
+                                  onChanged: (v) => setDialogState(() => selectedGender = v),
+                                  title: Text('녀', style: theme.textTheme.bodyMedium),
+                                  contentPadding: EdgeInsets.zero,
+                                  dense: true,
+                                  visualDensity: const VisualDensity(vertical: -2),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  activeColor: AppPalette.green,
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: compact ? 8 : 10),
+                          Container(
+                            padding: EdgeInsets.fromLTRB(
+                              compact ? 10 : 14,
+                              compact ? 8 : 12,
+                              compact ? 10 : 14,
+                              compact ? 4 : 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppPalette.beigeContainer,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppPalette.green.withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '연령대',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: AppPalette.navy,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                ...ageOptions.map(
+                                  (item) => RadioListTile<String>(
+                                    value: item.value,
+                                    groupValue: selectedAgeBracket,
+                                    onChanged: (v) =>
+                                        setDialogState(() => selectedAgeBracket = v),
+                                    title: Text(item.label, style: theme.textTheme.bodyMedium),
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                    visualDensity: const VisualDensity(vertical: -2),
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    activeColor: AppPalette.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: compact ? 8 : 12),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppPalette.green,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppPalette.green.withValues(alpha: 0.35),
+                      padding: EdgeInsets.symmetric(vertical: compact ? 12 : 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: canSubmit
+                        ? () {
+                            Navigator.of(sheetContext).pop(
+                              _UserProfileInput(
+                                gender: selectedGender!,
+                                ageBracket: selectedAgeBracket!,
+                              ),
+                            );
+                          }
+                        : null,
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (!mounted || input == null) return;
+
+    try {
+      await _authService.ensureSignedInAnonymously();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      await _saveUserProfileAndUpdateTotals(
+        uid: user.uid,
+        gender: input.gender,
+        ageBracket: input.ageBracket,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(navContext)?.showSnackBar(
+        const SnackBar(content: Text('기본 정보 저장에 실패했습니다. 다시 시도해 주세요.')),
+      );
+      _profilePromptShown = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_ensureProfileOnFirstLaunch());
+      });
+    }
+  }
+
+  Future<BuildContext?> _waitForNavigatorContext() async {
+    for (var i = 0; i < 30; i++) {
+      final navContext = AlarmRingCoordinator.navigatorKey.currentContext;
+      if (navContext != null) return navContext;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    return null;
+  }
+
+  Future<bool> _shouldShowProfilePrompt() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return true;
+
+    final snapshot =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (!snapshot.exists) return true;
+
+    final data = snapshot.data();
+    final gender = (data?['gender'] as String?)?.trim() ?? '';
+    final ageBracket = (data?['ageBracket'] as String?)?.trim() ?? '';
+    return gender.isEmpty || ageBracket.isEmpty;
+  }
+
+  Future<void> _saveUserProfileAndUpdateTotals({
+    required String uid,
+    required String gender,
+    required String ageBracket,
+  }) async {
+    final db = FirebaseFirestore.instance;
+    final userRef = db.collection('users').doc(uid);
+    final totalRef = db.collection('user_total').doc('global');
+
+    await db.runTransaction((tx) async {
+      final userSnap = await tx.get(userRef);
+      final existed = userSnap.exists;
+      final prev = userSnap.data();
+      final prevGender = prev?['gender'] as String?;
+      final prevAgeBracket = prev?['ageBracket'] as String?;
+
+      final userPayload = <String, dynamic>{
+        'gender': gender,
+        'ageBracket': ageBracket,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (!existed) {
+        userPayload['createdAt'] = FieldValue.serverTimestamp();
+      }
+      tx.set(userRef, userPayload, SetOptions(merge: true));
+
+      final totalsUpdate = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (!existed) {
+        totalsUpdate['totalUsers'] = FieldValue.increment(1);
+      }
+
+      if (!existed || prevGender != gender) {
+        if (prevGender == 'male' || prevGender == 'female') {
+          totalsUpdate[prevGender!] = FieldValue.increment(-1);
+        }
+        totalsUpdate[gender] = FieldValue.increment(1);
+      }
+
+      if (!existed || prevAgeBracket != ageBracket) {
+        final prevAgeField = _ageCountField(prevAgeBracket);
+        if (prevAgeField != null) {
+          totalsUpdate[prevAgeField] = FieldValue.increment(-1);
+        }
+        final nextAgeField = _ageCountField(ageBracket);
+        if (nextAgeField != null) {
+          totalsUpdate[nextAgeField] = FieldValue.increment(1);
+        }
+      }
+
+      tx.set(totalRef, totalsUpdate, SetOptions(merge: true));
+    });
+  }
+
+  String? _ageCountField(String? ageBracket) {
+    return switch (ageBracket) {
+      'under18' => 'age_under18',
+      '18_24' => 'age_18_24',
+      '25_29' => 'age_25_29',
+      '30_34' => 'age_30_34',
+      '35_39' => 'age_35_39',
+      '40_plus' => 'age_40_plus',
+      _ => null,
+    };
   }
 
   Future<void> _syncQuizOnLaunch() async {
@@ -439,6 +813,26 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
       home: const MainTabsScreen(),
     );
   }
+}
+
+class _UserProfileInput {
+  const _UserProfileInput({
+    required this.gender,
+    required this.ageBracket,
+  });
+
+  final String gender;
+  final String ageBracket;
+}
+
+class _AgeChip {
+  const _AgeChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
 }
 
 /// 퀴즈 동기화 중 전체 화면 반투명 + 시트 진행(n/N) + 불확정 프로그래스바.

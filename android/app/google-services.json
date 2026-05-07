@@ -12,7 +12,36 @@
           "package_name": "com.bon.nihongona"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "951483203031-5uei6a42q96022a856hmitmpb62nm9f0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bon.nihongona",
+            "certificate_hash": "348bd3bd69e2a1879db0bdde2d79f1f76b2014a9"
+          }
+        },
+        {
+          "client_id": "951483203031-cg219pam3fn2n34du8bnc4jo2dtj92g6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bon.nihongona",
+            "certificate_hash": "5e933dbac08c5142f1d44e13557e68a510e7bdcd"
+          }
+        },
+        {
+          "client_id": "951483203031-vaojrc5nncbf67vet8eqe2ca103j6aii.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bon.nihongona",
+            "certificate_hash": "735da02a143dd099cdcfedf3b7e750270f98f5a1"
+          }
+        },
+        {
+          "client_id": "951483203031-futrari1o21d66sbpsutjm2sdr31qgt4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDF6xYoZ6jQ2jLPSa3ZfAGisSkmwgyPe88"
@@ -20,7 +49,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "951483203031-futrari1o21d66sbpsutjm2sdr31qgt4.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "951483203031-005bq04tailg17mngorn4rl0bn1itam8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bon.nihongona"
+              }
+            }
+          ]
         }
       }
     }

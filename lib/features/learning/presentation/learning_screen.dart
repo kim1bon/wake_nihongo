@@ -36,20 +36,14 @@ class _LearningRow {
   final bool hiraganaDisplay;
 }
 
-enum _LearningKind {
-  kana,
-  number,
-  counter,
-  date,
-  time,
-}
+enum _LearningKind { kana, number, counter, date, time }
 
 const Map<_LearningKind, String> _kindLabels = {
-  _LearningKind.kana: '기본문자표',
-  _LearningKind.number: '숫자표',
-  _LearningKind.counter: '세기표',
-  _LearningKind.date: '날짜표',
-  _LearningKind.time: '시간표',
+  _LearningKind.kana: '기본문자',
+  _LearningKind.number: '숫자',
+  _LearningKind.counter: '세기',
+  _LearningKind.date: '날짜',
+  _LearningKind.time: '시간',
 };
 
 const Map<_LearningKind, List<String>> _kindTypes = {
@@ -74,31 +68,151 @@ const Map<String, String> _typeLabels = {
 };
 
 const List<_KanaLine> _hiraganaRows = [
-  _KanaLine('아행', [ _KanaCell('あ', '아'), _KanaCell('い', '이'), _KanaCell('う', '우'), _KanaCell('え', '에'), _KanaCell('お', '오') ]),
-  _KanaLine('카행', [ _KanaCell('か', '카'), _KanaCell('き', '키'), _KanaCell('く', '쿠'), _KanaCell('け', '케'), _KanaCell('こ', '코') ]),
-  _KanaLine('사행', [ _KanaCell('さ', '사'), _KanaCell('し', '시'), _KanaCell('す', '스'), _KanaCell('せ', '세'), _KanaCell('そ', '소') ]),
-  _KanaLine('타행', [ _KanaCell('た', '타'), _KanaCell('ち', '치'), _KanaCell('つ', '츠'), _KanaCell('て', '테'), _KanaCell('と', '토') ]),
-  _KanaLine('나행', [ _KanaCell('な', '나'), _KanaCell('に', '니'), _KanaCell('ぬ', '누'), _KanaCell('ね', '네'), _KanaCell('の', '노') ]),
-  _KanaLine('하행', [ _KanaCell('は', '하'), _KanaCell('ひ', '히'), _KanaCell('ふ', '후'), _KanaCell('へ', '헤'), _KanaCell('ほ', '호') ]),
-  _KanaLine('마행', [ _KanaCell('ま', '마'), _KanaCell('み', '미'), _KanaCell('む', '무'), _KanaCell('め', '메'), _KanaCell('も', '모') ]),
-  _KanaLine('야행', [ _KanaCell('や', '야'), null, _KanaCell('ゆ', '유'), null, _KanaCell('よ', '요') ]),
-  _KanaLine('라행', [ _KanaCell('ら', '라'), _KanaCell('り', '리'), _KanaCell('る', '루'), _KanaCell('れ', '레'), _KanaCell('ろ', '로') ]),
-  _KanaLine('와행', [ _KanaCell('わ', '와'), null, null, null, _KanaCell('を', '오(조사)') ]),
-  _KanaLine('응행', [ null, null, _KanaCell('ん', '응/ㄴ'), null, null ]),
+  _KanaLine('아행', [
+    _KanaCell('あ', '아'),
+    _KanaCell('い', '이'),
+    _KanaCell('う', '우'),
+    _KanaCell('え', '에'),
+    _KanaCell('お', '오'),
+  ]),
+  _KanaLine('카행', [
+    _KanaCell('か', '카'),
+    _KanaCell('き', '키'),
+    _KanaCell('く', '쿠'),
+    _KanaCell('け', '케'),
+    _KanaCell('こ', '코'),
+  ]),
+  _KanaLine('사행', [
+    _KanaCell('さ', '사'),
+    _KanaCell('し', '시'),
+    _KanaCell('す', '스'),
+    _KanaCell('せ', '세'),
+    _KanaCell('そ', '소'),
+  ]),
+  _KanaLine('타행', [
+    _KanaCell('た', '타'),
+    _KanaCell('ち', '치'),
+    _KanaCell('つ', '츠'),
+    _KanaCell('て', '테'),
+    _KanaCell('と', '토'),
+  ]),
+  _KanaLine('나행', [
+    _KanaCell('な', '나'),
+    _KanaCell('に', '니'),
+    _KanaCell('ぬ', '누'),
+    _KanaCell('ね', '네'),
+    _KanaCell('の', '노'),
+  ]),
+  _KanaLine('하행', [
+    _KanaCell('は', '하'),
+    _KanaCell('ひ', '히'),
+    _KanaCell('ふ', '후'),
+    _KanaCell('へ', '헤'),
+    _KanaCell('ほ', '호'),
+  ]),
+  _KanaLine('마행', [
+    _KanaCell('ま', '마'),
+    _KanaCell('み', '미'),
+    _KanaCell('む', '무'),
+    _KanaCell('め', '메'),
+    _KanaCell('も', '모'),
+  ]),
+  _KanaLine('야행', [
+    _KanaCell('や', '야'),
+    null,
+    _KanaCell('ゆ', '유'),
+    null,
+    _KanaCell('よ', '요'),
+  ]),
+  _KanaLine('라행', [
+    _KanaCell('ら', '라'),
+    _KanaCell('り', '리'),
+    _KanaCell('る', '루'),
+    _KanaCell('れ', '레'),
+    _KanaCell('ろ', '로'),
+  ]),
+  _KanaLine('와행', [
+    _KanaCell('わ', '와'),
+    null,
+    null,
+    null,
+    _KanaCell('を', '오(조사)'),
+  ]),
+  _KanaLine('응행', [null, null, _KanaCell('ん', '응/ㄴ'), null, null]),
 ];
 
 const List<_KanaLine> _katakanaRows = [
-  _KanaLine('아행', [ _KanaCell('ア', '아'), _KanaCell('イ', '이'), _KanaCell('ウ', '우'), _KanaCell('エ', '에'), _KanaCell('オ', '오') ]),
-  _KanaLine('카행', [ _KanaCell('カ', '카'), _KanaCell('キ', '키'), _KanaCell('ク', '쿠'), _KanaCell('ケ', '케'), _KanaCell('コ', '코') ]),
-  _KanaLine('사행', [ _KanaCell('サ', '사'), _KanaCell('シ', '시'), _KanaCell('ス', '스'), _KanaCell('セ', '세'), _KanaCell('ソ', '소') ]),
-  _KanaLine('타행', [ _KanaCell('タ', '타'), _KanaCell('チ', '치'), _KanaCell('ツ', '츠'), _KanaCell('テ', '테'), _KanaCell('ト', '토') ]),
-  _KanaLine('나행', [ _KanaCell('ナ', '나'), _KanaCell('ニ', '니'), _KanaCell('ヌ', '누'), _KanaCell('ネ', '네'), _KanaCell('ノ', '노') ]),
-  _KanaLine('하행', [ _KanaCell('ハ', '하'), _KanaCell('ヒ', '히'), _KanaCell('フ', '후'), _KanaCell('ヘ', '헤'), _KanaCell('ホ', '호') ]),
-  _KanaLine('마행', [ _KanaCell('マ', '마'), _KanaCell('ミ', '미'), _KanaCell('ム', '무'), _KanaCell('メ', '메'), _KanaCell('モ', '모') ]),
-  _KanaLine('야행', [ _KanaCell('ヤ', '야'), null, _KanaCell('ユ', '유'), null, _KanaCell('ヨ', '요') ]),
-  _KanaLine('라행', [ _KanaCell('ラ', '라'), _KanaCell('リ', '리'), _KanaCell('ル', '루'), _KanaCell('レ', '레'), _KanaCell('ロ', '로') ]),
-  _KanaLine('와행', [ _KanaCell('ワ', '와'), null, null, null, _KanaCell('ヲ', '오(조사)') ]),
-  _KanaLine('응행', [ null, null, _KanaCell('ン', '응/ㄴ'), null, null ]),
+  _KanaLine('아행', [
+    _KanaCell('ア', '아'),
+    _KanaCell('イ', '이'),
+    _KanaCell('ウ', '우'),
+    _KanaCell('エ', '에'),
+    _KanaCell('オ', '오'),
+  ]),
+  _KanaLine('카행', [
+    _KanaCell('カ', '카'),
+    _KanaCell('キ', '키'),
+    _KanaCell('ク', '쿠'),
+    _KanaCell('ケ', '케'),
+    _KanaCell('コ', '코'),
+  ]),
+  _KanaLine('사행', [
+    _KanaCell('サ', '사'),
+    _KanaCell('シ', '시'),
+    _KanaCell('ス', '스'),
+    _KanaCell('セ', '세'),
+    _KanaCell('ソ', '소'),
+  ]),
+  _KanaLine('타행', [
+    _KanaCell('タ', '타'),
+    _KanaCell('チ', '치'),
+    _KanaCell('ツ', '츠'),
+    _KanaCell('テ', '테'),
+    _KanaCell('ト', '토'),
+  ]),
+  _KanaLine('나행', [
+    _KanaCell('ナ', '나'),
+    _KanaCell('ニ', '니'),
+    _KanaCell('ヌ', '누'),
+    _KanaCell('ネ', '네'),
+    _KanaCell('ノ', '노'),
+  ]),
+  _KanaLine('하행', [
+    _KanaCell('ハ', '하'),
+    _KanaCell('ヒ', '히'),
+    _KanaCell('フ', '후'),
+    _KanaCell('ヘ', '헤'),
+    _KanaCell('ホ', '호'),
+  ]),
+  _KanaLine('마행', [
+    _KanaCell('マ', '마'),
+    _KanaCell('ミ', '미'),
+    _KanaCell('ム', '무'),
+    _KanaCell('メ', '메'),
+    _KanaCell('モ', '모'),
+  ]),
+  _KanaLine('야행', [
+    _KanaCell('ヤ', '야'),
+    null,
+    _KanaCell('ユ', '유'),
+    null,
+    _KanaCell('ヨ', '요'),
+  ]),
+  _KanaLine('라행', [
+    _KanaCell('ラ', '라'),
+    _KanaCell('リ', '리'),
+    _KanaCell('ル', '루'),
+    _KanaCell('レ', '레'),
+    _KanaCell('ロ', '로'),
+  ]),
+  _KanaLine('와행', [
+    _KanaCell('ワ', '와'),
+    null,
+    null,
+    null,
+    _KanaCell('ヲ', '오(조사)'),
+  ]),
+  _KanaLine('응행', [null, null, _KanaCell('ン', '응/ㄴ'), null, null]),
 ];
 
 class LearningScreen extends StatefulWidget {
@@ -195,37 +309,39 @@ class _LearningScreenState extends State<LearningScreen> {
       controller: _kindScrollController,
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _LearningKind.values.map((k) {
-          final selected = k == _selectedKind;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              key: _kindButtonKeys[k],
-              selected: selected,
-              label: Text(_kindLabels[k]!),
-              labelStyle: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color: selected
-                    ? theme.colorScheme.onSecondaryContainer
-                    : theme.colorScheme.onSurface,
-              ),
-              selectedColor: theme.colorScheme.secondaryContainer,
-              side: BorderSide(
-                color: selected
-                    ? theme.colorScheme.secondary.withValues(alpha: 0.55)
-                    : theme.colorScheme.outline.withValues(alpha: 0.35),
-              ),
-              onSelected: (_) {
-                if (k == _selectedKind) {
-                  _focusSelectedKindChip(k);
-                  return;
-                }
-                setState(() => _selectedKind = k);
-                _focusSelectedKindChip(k);
-              },
-            ),
-          );
-        }).toList(growable: false),
+        children: _LearningKind.values
+            .map((k) {
+              final selected = k == _selectedKind;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  key: _kindButtonKeys[k],
+                  selected: selected,
+                  label: Text(_kindLabels[k]!),
+                  labelStyle: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: selected
+                        ? theme.colorScheme.onSecondaryContainer
+                        : theme.colorScheme.onSurface,
+                  ),
+                  selectedColor: theme.colorScheme.secondaryContainer,
+                  side: BorderSide(
+                    color: selected
+                        ? theme.colorScheme.secondary.withValues(alpha: 0.55)
+                        : theme.colorScheme.outline.withValues(alpha: 0.35),
+                  ),
+                  onSelected: (_) {
+                    if (k == _selectedKind) {
+                      _focusSelectedKindChip(k);
+                      return;
+                    }
+                    setState(() => _selectedKind = k);
+                    _focusSelectedKindChip(k);
+                  },
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
@@ -248,15 +364,9 @@ class _LearningScreenState extends State<LearningScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        _KanaTableCard(
-          title: '히라가나',
-          rows: _hiraganaRows,
-        ),
+        _KanaTableCard(title: '히라가나', rows: _hiraganaRows),
         const SizedBox(height: 12),
-        _KanaTableCard(
-          title: '가타카나',
-          rows: _katakanaRows,
-        ),
+        _KanaTableCard(title: '가타카나', rows: _katakanaRows),
       ],
     );
   }
@@ -274,10 +384,7 @@ class _LearningScreenState extends State<LearningScreen> {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Text(
-            '해당 학습 데이터가 없습니다.',
-            style: theme.textTheme.bodyMedium,
-          ),
+          child: Text('해당 학습 데이터가 없습니다.', style: theme.textTheme.bodyMedium),
         ),
       );
     }
@@ -356,10 +463,7 @@ class _LearningScreenState extends State<LearningScreen> {
 }
 
 class _LearningTableCard extends StatelessWidget {
-  const _LearningTableCard({
-    required this.title,
-    required this.rows,
-  });
+  const _LearningTableCard({required this.title, required this.rows});
 
   final String title;
   final List<_LearningRow> rows;
@@ -418,19 +522,13 @@ class _LearningTableCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.beigeSoft.withValues(alpha: 0.55),
       ),
-      children: [
-        _TableCellText(jpValue),
-        _TableCellText(korValue),
-      ],
+      children: [_TableCellText(jpValue), _TableCellText(korValue)],
     );
   }
 }
 
 class _KanaTableCard extends StatelessWidget {
-  const _KanaTableCard({
-    required this.title,
-    required this.rows,
-  });
+  const _KanaTableCard({required this.title, required this.rows});
 
   final String title;
   final List<_KanaLine> rows;
@@ -445,9 +543,9 @@ class _KanaTableCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Table(
@@ -499,9 +597,8 @@ class _KanaTableCard extends StatelessWidget {
       children: [
         _TableCellText(line.rowLabel, bold: true),
         ...line.cells.map(
-          (cell) => _TableCellText(
-            cell == null ? '-' : '${cell.jp}\n${cell.ko}',
-          ),
+          (cell) =>
+              _TableCellText(cell == null ? '-' : '${cell.jp}\n${cell.ko}'),
         ),
       ],
     );
@@ -519,21 +616,18 @@ class _TableCellText extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 3,
-        vertical: isHeader ? 8 : 7,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 3, vertical: isHeader ? 8 : 7),
       child: Text(
         value,
         textAlign: TextAlign.center,
         style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-              height: isHeader ? 1.2 : 1.25,
-              fontSize: isHeader ? 12.5 : 12,
-              color: isHeader
-                  ? AppPalette.navy.withValues(alpha: 0.9)
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.86),
-            ),
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+          height: isHeader ? 1.2 : 1.25,
+          fontSize: isHeader ? 12.5 : 12,
+          color: isHeader
+              ? AppPalette.navy.withValues(alpha: 0.9)
+              : theme.colorScheme.onSurface.withValues(alpha: 0.86),
+        ),
       ),
     );
   }
