@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -306,11 +307,28 @@ class SettingsScreen extends ConsumerWidget {
                       if (sheetContext.mounted) {
                         Navigator.of(sheetContext).pop();
                       }
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('계정이 삭제되었습니다.')),
-                        );
-                      }
+                      if (!context.mounted) return;
+                      await showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (restartDialogContext) {
+                          return AlertDialog(
+                            title: const Text('계정이 삭제되었습니다'),
+                            content: const Text(
+                              '계정 삭제가 완료되었습니다.\n앱을 재실행해 주세요.',
+                            ),
+                            actions: [
+                              FilledButton(
+                                onPressed: () {
+                                  Navigator.of(restartDialogContext).pop();
+                                  SystemNavigator.pop();
+                                },
+                                child: const Text('확인'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     } on FirebaseAuthException catch (e) {
                       if (!context.mounted) return;
                       final message = e.code == 'requires-recent-login'
