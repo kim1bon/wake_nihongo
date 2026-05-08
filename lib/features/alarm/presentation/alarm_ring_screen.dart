@@ -1,17 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/alarm_pending_state_store.dart';
-import '../../../app/alarm_services.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/ui/responsive.dart';
-import '../data/alarm_native_android.dart';
-import '../data/alarm_reschedule_session_store.dart';
-import '../domain/alarm.dart';
 import 'alarm_providers.dart';
 import '../../settings/presentation/alarm_quiz_question_count_notifier.dart';
 import '../../settings/presentation/quiz_prompt_mode_notifier.dart';
@@ -52,9 +46,6 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   int? _wrongPickIndex;
   int? _correctPickIndex;
 
-  Alarm? _boundAlarm;
-  int _rescheduleRemaining = 0;
-
   bool get _mustSolveQuiz =>
       !_loadingQuiz && _loadError == null && _question != null;
 
@@ -71,66 +62,12 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
     return '정답을 맞히면 알람을 끌 수 있어요';
   }
 
-  bool get _showRescheduleButton {
-    final a = _boundAlarm;
-    return widget.alarmId >= 0 &&
-        !_quizSolved &&
-        a != null &&
-        a.rescheduleEnabled &&
-        _rescheduleRemaining > 0;
-  }
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _refreshRescheduleState();
       await _loadQuiz();
     });
-  }
-
-  Future<void> _refreshRescheduleState() async {
-    if (widget.alarmId < 0) {
-      if (mounted) {
-        setState(() {
-          _boundAlarm = null;
-          _rescheduleRemaining = 0;
-        });
-      }
-      return;
-    }
-    final alarm = await ref.read(alarmRepositoryProvider).getAlarm(widget.alarmId);
-    final left = await AlarmRescheduleSessionStore.readRemaining(widget.alarmId);
-    if (!mounted) return;
-    setState(() {
-      _boundAlarm = alarm;
-      _rescheduleRemaining = left ?? 0;
-    });
-  }
-
-  Future<void> _onReschedulePressed() async {
-    final id = widget.alarmId;
-    if (id < 0) return;
-    final alarm = _boundAlarm ?? await ref.read(alarmRepositoryProvider).getAlarm(id);
-    if (alarm == null || !alarm.rescheduleEnabled) return;
-    final left = await AlarmRescheduleSessionStore.readRemaining(id);
-    if (left == null || left <= 0) return;
-
-    await ref.read(alarmRepositoryProvider).scheduleReschedule(
-          alarmId: id,
-          soundId: alarm.soundId,
-          delayMinutes: alarm.rescheduleDelayMinutes,
-        );
-    await AlarmRescheduleSessionStore.decrementRemaining(id);
-
-    await AlarmServices.ringtonePlayer.stop();
-    await AlarmPendingStateStore.clear();
-    if (Platform.isAndroid) {
-      await AlarmNativeAndroid.stopRinging();
-    }
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
   }
 
   Future<void> _loadQuiz() async {
@@ -328,25 +265,6 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         child: const Text('문제 다시 불러오기'),
                       ),
                       SizedBox(height: context.h(8)),
-                    ],
-                    if (_showRescheduleButton) ...[
-                      OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.92),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: context.h(16)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(context.r(14)),
-                          ),
-                        ),
-                        onPressed: _onReschedulePressed,
-                        child: Text(
-                          '다시 알림 (${_boundAlarm!.rescheduleDelayMinutes}분 후 · 남음 $_rescheduleRemaining회)',
-                        ),
-                      ),
-                      SizedBox(height: context.h(10)),
                     ],
                     SizedBox(height: context.h(16)),
                     FilledButton(
