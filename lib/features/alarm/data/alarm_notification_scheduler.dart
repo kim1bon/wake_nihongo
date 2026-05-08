@@ -113,7 +113,8 @@ class AlarmNotificationScheduler {
 
   /// Clears all weekday slots for this alarm id (1–7). Use when weekdays may have changed.
   Future<void> cancelAllSlotsForAlarmId(int alarmId) async {
-    for (var weekday = 1; weekday <= 7; weekday++) {
+    // 0: Android 1회 알람 슬롯(네이티브와 동일한 requestCode 규칙). 1–7: 요일 반복.
+    for (var weekday = 0; weekday <= 7; weekday++) {
       await _plugin.cancel(notificationId(alarmId, weekday));
       for (var slot = 0; slot < _iosRepeatSlots; slot++) {
         await _plugin.cancel(_iosSlotNotificationId(alarmId, weekday, slot));
@@ -201,7 +202,15 @@ class AlarmNotificationScheduler {
 
   Future<void> schedule(Alarm alarm) async {
     await _runWithAndroidScheduledDataRecovery(() async {
-      if (!alarm.enabled || alarm.weekdays.isEmpty) return;
+      if (!alarm.enabled) return;
+
+      // 빈 요일: Android는 AlarmManager(네이티브)만 1회 예약. iOS는 절대 시각 1회(5분 간격 체인) 로컬 알림.
+      if (alarm.weekdays.isEmpty) {
+        if (Platform.isIOS) {
+          await _scheduleIosOneShotChain(alarm);
+        }
+        return;
+      }
 
       final soundId = AlarmSoundIds.isValid(alarm.soundId)
           ? alarm.soundId
@@ -296,6 +305,91 @@ class AlarmNotificationScheduler {
         }
       }
     });
+  }
+
+  /// 요일 미선택(1회): iOS는 주간 반복 없이 다음 시각부터 5분 간격 체인만 예약합니다.
+  Future<void> _scheduleIosOneShotChain(Alarm alarm) async {
+    final soundId = AlarmSoundIds.isValid(alarm.soundId)
+        ? alarm.soundId
+        : AlarmSoundIds.defaultId;
+    final rawName = AlarmSoundIds.androidRawName(soundId);
+    final channelId = _androidChannelId(soundId);
+
+    final androidDetails = AndroidNotificationDetails(
+      channelId,
+      '알람 (${AlarmSoundIds.label(soundId)})',
+      channelDescription: _channelDescription,
+      importance: Importance.max,
+      priority: Priority.max,
+      category: AndroidNotificationCategory.alarm,
+      fullScreenIntent: true,
+      visibility: NotificationVisibility.public,
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      sound: RawResourceAndroidNotificationSound(rawName),
+      playSound: false,
+      enableVibration: true,
+      ongoing: true,
+      autoCancel: false,
+      onlyAlertOnce: false,
+    );
+    final iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      presentBanner: true,
+      presentList: true,
+      sound: AlarmSoundIds.iosFileName(soundId),
+      interruptionLevel: InterruptionLevel.timeSensitive,
+    );
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    final payload = jsonEncode({
+      'alarmId': alarm.id,
+      'soundId': soundId,
+      'kind': AlarmPayloadKind.weekly.name,
+    });
+
+    final pending = await _plugin.pendingNotificationRequests();
+    var iosBudget = _iosMaxPendingNotifications - pending.length;
+    if (iosBudget <= 0) return;
+
+    final firstWhen = _nextInstanceOfTime(alarm.hour, alarm.minute);
+
+    for (var slot = 0; slot < _iosRepeatSlots; slot++) {
+      if (iosBudget <= 0) return;
+      final when = firstWhen.add(_iosRepeatInterval * slot);
+      await _plugin.zonedSchedule(
+        _iosSlotNotificationId(alarm.id, 0, slot),
+        _appNotificationTitle,
+        '알람 시간입니다. 앱을 열어 알람을 끄세요.',
+        when,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+      iosBudget--;
+    }
+  }
+
+  tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    if (!scheduled.isAfter(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
   }
 
   tz.TZDateTime _nextInstanceOfWeekday(int weekday, int hour, int minute) {

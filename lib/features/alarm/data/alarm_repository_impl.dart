@@ -156,6 +156,11 @@ class AlarmRepositoryImpl implements AlarmRepository {
     if (alarm == null) return;
 
     await _scheduler.cancelAllSlotsForAlarmId(alarmId);
+    if (alarm.weekdays.isEmpty) {
+      await _dataSource.setAlarmEnabled(alarmId, false);
+      await AlarmNativeAndroid.syncAlarms(await _dataSource.getAll());
+      return;
+    }
     if (alarm.enabled) {
       await _scheduler.schedule(alarm);
     }

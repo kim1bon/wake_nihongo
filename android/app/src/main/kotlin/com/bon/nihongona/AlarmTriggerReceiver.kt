@@ -33,14 +33,17 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         }
         context.applicationContext.startActivity(openQuizIntent)
 
-        AndroidAlarmScheduler.scheduleNextWeekSameSlot(
-            context.applicationContext,
-            alarmId,
-            weekday,
-            hour,
-            minute,
-            raw,
-        )
+        // weekday == 0: 요일 미선택 1회 알람 — 다음 주 재예약 없음.
+        if (weekday != 0) {
+            AndroidAlarmScheduler.scheduleNextWeekSameSlot(
+                context.applicationContext,
+                alarmId,
+                weekday,
+                hour,
+                minute,
+                raw,
+            )
+        }
     }
 
     private fun rawToFlutterSoundId(raw: String): String = when (raw) {

@@ -13,7 +13,9 @@ class QuizChallengeBody extends StatelessWidget {
     required this.onPickIndex,
     this.useAlarmStyleLayout = false,
     this.forceSingleColumnChoices = false,
-    this.thumbnailAssetPath,
+
+    /// true면 남는 세로 공간 안에서 선택지를 아래쪽에 붙입니다(연습 퀴즈 등).
+    this.pinChoicesToBottom = false,
     this.feedbackWrong = false,
 
     /// 방금 선택한 오답 인덱스. 해당 버튼만 오류 색으로 채워 표시합니다.
@@ -27,7 +29,7 @@ class QuizChallengeBody extends StatelessWidget {
   final void Function(int index) onPickIndex;
   final bool useAlarmStyleLayout;
   final bool forceSingleColumnChoices;
-  final String? thumbnailAssetPath;
+  final bool pinChoicesToBottom;
   final bool feedbackWrong;
   final int? wrongPickIndex;
   final int? correctHighlightIndex;
@@ -145,11 +147,8 @@ class QuizChallengeBody extends StatelessWidget {
           const compactChoiceAspectStep = 0.16;
           const regularChoiceAspectStep = 0.12;
           final isSentence = question.type.trim().toLowerCase() == 'sentence';
-          final typeLabel = isSentence
-              ? '2지선다 · ${question.type}'
-              : '4지선다 · ${question.type}';
-          /// sentence(2지): 기본 1열, 4지선다는 기본 2열이지만
-          /// [forceSingleColumnChoices]가 true이면 항상 1열(세로 스택)로 배치합니다.
+          /// `sentence` 타입만 1열(세로 스택). 그 외는 2열(2×2) 그리드.
+          /// [forceSingleColumnChoices]가 true이면 타입과 관계없이 1열.
           final isSingleColumn = forceSingleColumnChoices || isSentence;
           final choiceGridCrossAxisCount = isSingleColumn ? 1 : 2;
           /// 한→일은 발음 보조 줄 때문에 셀을 조금 더 높게.
@@ -168,8 +167,12 @@ class QuizChallengeBody extends StatelessWidget {
             (false, _, true) => 2.48,
             (false, _, false) => 2.3,
           };
-          final tunedChoiceGridChildAspectRatio = choiceGridChildAspectRatio +
-              (isCompactDevice ? compactChoiceAspectStep : regularChoiceAspectStep);
+          final tunedChoiceGridChildAspectRatio =
+              (choiceGridChildAspectRatio +
+                      (isCompactDevice
+                          ? compactChoiceAspectStep
+                          : regularChoiceAspectStep)) /
+                  1.3;
 
           if (useAlarmStyleLayout) {
             Widget buildChoiceButton(int i) {
@@ -205,109 +208,52 @@ class QuizChallengeBody extends StatelessWidget {
                     ),
                   ),
                   padding: EdgeInsets.symmetric(
-                    vertical: context.h(isCompactDevice ? 2 : 4),
+                    vertical: context.h(
+                      (isCompactDevice ? 2.0 : 4.0) * 1.3,
+                    ),
                     horizontal: context.w(isCompactDevice ? 8 : 10),
                   ),
                 ),
                 onPressed: () => onPickIndex(i),
-                child: _choiceButtonChild(
-                  theme,
-                  i,
-                  label,
-                  foreground,
-                  forceSingleColumnChoices,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: context.h(4)),
+                  child: _choiceButtonChild(
+                    theme,
+                    i,
+                    label,
+                    foreground,
+                    isSingleColumn,
+                  ),
                 ),
               );
             }
 
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final wn = context.wnColors;
-                final cardWidth = constraints.maxWidth;
-                final bubbleFill = Color.alphaBlend(
-                  AppPalette.beige.withValues(alpha: 0.12),
-                  Colors.white.withValues(alpha: 0.42),
-                );
-                final thumbnailSize = (cardWidth * 0.22).clamp(74.0, 92.0);
-                final thumbnailRight = (cardWidth * 0.045).clamp(12.0, 20.0);
-                final bubbleBottomGap = thumbnailSize * 0.48;
-                final tailRight =
-                    thumbnailRight + thumbnailSize - (thumbnailSize * 0.16);
-                final tailBottom = bubbleBottomGap + 2;
-                final tailWidth = (thumbnailSize * 0.40).clamp(28.0, 38.0);
-                final tailHeight = (thumbnailSize * 0.33).clamp(22.0, 30.0);
-                return Column(
+            return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          margin: EdgeInsets.only(bottom: bubbleBottomGap),
-                          padding: EdgeInsets.fromLTRB(
-                            context.w(18),
-                            context.h(22),
-                            context.w(18),
-                            context.h(28),
-                          ),
-                          decoration: BoxDecoration(
-                            color: bubbleFill,
-                            borderRadius: BorderRadius.circular(context.r(24)),
-                            border: Border.all(color: wn.quizBubbleBorder),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                typeLabel,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: theme.colorScheme.secondary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: context.h(12)),
-                              _buildPromptTexts(theme, question),
-                            ],
-                          ),
+                    Container(
+                      padding: EdgeInsets.fromLTRB(
+                        context.w(14),
+                        context.h(14),
+                        context.w(14),
+                        context.h(14),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Color.alphaBlend(
+                          AppPalette.beige.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.44),
                         ),
-                        Positioned(
-                          right: tailRight,
-                          bottom: tailBottom,
-                          child: _SpeechBubbleTail(
-                            width: tailWidth,
-                            height: tailHeight,
-                            fillColor: bubbleFill,
-                            borderColor: wn.quizTailBorder,
-                          ),
+                        borderRadius: BorderRadius.circular(context.r(14)),
+                        border: Border.all(
+                          color: context.wnColors.quizBubbleBorder,
                         ),
-                        if (thumbnailAssetPath != null)
-                          Positioned(
-                            right: thumbnailRight,
-                            bottom: 0,
-                            child: Container(
-                              width: thumbnailSize,
-                              height: thumbnailSize,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: wn.quizThumbnailRing,
-                                  width: 3,
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x33000000),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                                image: DecorationImage(
-                                  image: AssetImage(thumbnailAssetPath!),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            )
-                          ),
-                      ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildPromptTexts(theme, question),
+                        ],
+                      ),
                     ),
                     SizedBox(height: context.h(14)),
                     if (feedbackWrong)
@@ -323,77 +269,209 @@ class QuizChallengeBody extends StatelessWidget {
                         ),
                       ),
                     Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (choiceGridCrossAxisCount == 1)
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (var i = 0; i < question.choices.length; i++) ...[
-                                    buildChoiceButton(i),
-                                    if (i != question.choices.length - 1)
-                                      SizedBox(height: context.h(isCompactDevice ? 8 : 10)),
-                                  ],
-                                ],
-                              )
-                            else
-                              GridView.builder(
-                                shrinkWrap: true,
-                                itemCount: question.choices.length,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: context.h(isCompactDevice ? 8 : 10),
-                                  crossAxisSpacing: context.w(isCompactDevice ? 8 : 10),
-                                  childAspectRatio: isCompactDevice ? 2.48 : 2.3,
-                                ),
-                                itemBuilder: (context, i) => buildChoiceButton(i),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
                               ),
-                          ],
-                        ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (choiceGridCrossAxisCount == 1)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        for (var i = 0;
+                                            i < question.choices.length;
+                                            i++) ...[
+                                          buildChoiceButton(i),
+                                          if (i != question.choices.length - 1)
+                                            SizedBox(
+                                              height: context.h(
+                                                isCompactDevice ? 8 : 10,
+                                              ),
+                                            ),
+                                        ],
+                                      ],
+                                    )
+                                  else
+                                    GridView.builder(
+                                      shrinkWrap: true,
+                                      itemCount: question.choices.length,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        mainAxisSpacing: context.h(
+                                          isCompactDevice ? 8 : 10,
+                                        ),
+                                        crossAxisSpacing: context.w(
+                                          isCompactDevice ? 8 : 10,
+                                        ),
+                                        childAspectRatio:
+                                            tunedChoiceGridChildAspectRatio,
+                                      ),
+                                      itemBuilder: (context, i) =>
+                                          buildChoiceButton(i),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 );
-              },
+          }
+
+          final questionCard = Container(
+            padding: EdgeInsets.fromLTRB(
+              context.w(14),
+              context.h(14),
+              context.w(14),
+              context.h(14),
+            ),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                AppPalette.beige.withValues(alpha: 0.08),
+                Colors.white.withValues(alpha: 0.44),
+              ),
+              borderRadius: BorderRadius.circular(context.r(14)),
+              border: Border.all(color: context.wnColors.quizBubbleBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPromptTexts(theme, question),
+              ],
+            ),
+          );
+
+          final practiceChoiceGrid = GridView.builder(
+            shrinkWrap: true,
+            itemCount: question.choices.length,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: choiceGridCrossAxisCount,
+              mainAxisSpacing: context.h(10),
+              crossAxisSpacing: context.w(10),
+              childAspectRatio: tunedChoiceGridChildAspectRatio,
+            ),
+            itemBuilder: (context, i) {
+              final label = question.choices[i];
+              final showCorrectFill =
+                  correctHighlightIndex != null && correctHighlightIndex == i;
+              final showWrongFill =
+                  feedbackWrong &&
+                  wrongPickIndex != null &&
+                  wrongPickIndex == i;
+              final background = showCorrectFill
+                  ? theme.colorScheme.secondary
+                  : showWrongFill
+                      ? theme.colorScheme.error
+                      : AppPalette.beigeSoft;
+              final foreground = showCorrectFill
+                  ? theme.colorScheme.onSecondary
+                  : showWrongFill
+                      ? theme.colorScheme.onError
+                      : theme.colorScheme.onSurface;
+
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: background,
+                  foregroundColor: foreground,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(context.r(14)),
+                    side: BorderSide(
+                      width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
+                      color: showCorrectFill
+                          ? theme.colorScheme.secondary.withValues(alpha: 0.9)
+                          : showWrongFill
+                              ? theme.colorScheme.error.withValues(alpha: 0.9)
+                              : AppPalette.navy.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    vertical: context.h(
+                      (isCompactDevice ? 2.0 : 4.0) * 1.3,
+                    ),
+                    horizontal: context.w(isCompactDevice ? 8 : 10),
+                  ),
+                ),
+                onPressed: () => onPickIndex(i),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: context.h(4)),
+                  child: _choiceButtonChild(
+                    theme,
+                    i,
+                    label,
+                    foreground,
+                    isSingleColumn,
+                  ),
+                ),
+              );
+            },
+          );
+
+          if (pinChoicesToBottom) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                questionCard,
+                SizedBox(height: context.h(16)),
+                if (feedbackWrong)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: context.h(12)),
+                    child: Text(
+                      _wrongFeedbackMessage(),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [practiceChoiceGrid],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           }
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: EdgeInsets.fromLTRB(
-                  context.w(16),
-                  context.h(20),
-                  context.w(16),
-                  context.h(20),
-                ),
-                decoration: BoxDecoration(
-                  color: Color.alphaBlend(
-                    AppPalette.beige.withValues(alpha: 0.08),
-                    Colors.white.withValues(alpha: 0.44),
-                  ),
-                  borderRadius: BorderRadius.circular(context.r(24)),
-                  border: Border.all(color: context.wnColors.quizBubbleBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      typeLabel,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.secondary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: context.h(12)),
-                    _buildPromptTexts(theme, question),
-                  ],
-                ),
-              ),
+              questionCard,
               SizedBox(height: context.h(16)),
               if (feedbackWrong)
                 Padding(
@@ -407,140 +485,11 @@ class QuizChallengeBody extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              GridView.builder(
-                shrinkWrap: true,
-                itemCount: question.choices.length,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: choiceGridCrossAxisCount,
-                  mainAxisSpacing: context.h(10),
-                  crossAxisSpacing: context.w(10),
-                  childAspectRatio: tunedChoiceGridChildAspectRatio,
-                ),
-                itemBuilder: (context, i) {
-                  final label = question.choices[i];
-                  final showCorrectFill =
-                      correctHighlightIndex != null &&
-                      correctHighlightIndex == i;
-                  final showWrongFill =
-                      feedbackWrong &&
-                      wrongPickIndex != null &&
-                      wrongPickIndex == i;
-                  final background = showCorrectFill
-                      ? theme.colorScheme.secondary
-                      : showWrongFill
-                          ? theme.colorScheme.error
-                          : AppPalette.beigeSoft;
-                  final foreground = showCorrectFill
-                      ? theme.colorScheme.onSecondary
-                      : showWrongFill
-                          ? theme.colorScheme.onError
-                          : theme.colorScheme.onSurface;
-
-                  return ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: background,
-                      foregroundColor: foreground,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(context.r(14)),
-                        side: BorderSide(
-                          width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
-                          color: showCorrectFill
-                              ? theme.colorScheme.secondary
-                                  .withValues(alpha: 0.9)
-                              : showWrongFill
-                                  ? theme.colorScheme.error
-                                      .withValues(alpha: 0.9)
-                                  : AppPalette.navy.withValues(alpha: 0.10),
-                        ),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        vertical: context.h(isCompactDevice ? 2 : 4),
-                        horizontal: context.w(isCompactDevice ? 8 : 10),
-                      ),
-                    ),
-                    onPressed: () => onPickIndex(i),
-                    child: _choiceButtonChild(
-                      theme,
-                      i,
-                      label,
-                      foreground,
-                      forceSingleColumnChoices,
-                    ),
-                  );
-                },
-              ),
+              practiceChoiceGrid,
             ],
           );
         },
       ),
     );
-  }
-}
-
-class _SpeechBubbleTail extends StatelessWidget {
-  const _SpeechBubbleTail({
-    required this.width,
-    required this.height,
-    required this.fillColor,
-    required this.borderColor,
-  });
-
-  final double width;
-  final double height;
-  final Color fillColor;
-  final Color borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(width, height),
-      painter: _SpeechBubbleTailPainter(
-        fillColor: fillColor,
-        borderColor: borderColor,
-      ),
-    );
-  }
-}
-
-class _SpeechBubbleTailPainter extends CustomPainter {
-  _SpeechBubbleTailPainter({
-    required this.fillColor,
-    required this.borderColor,
-  });
-
-  final Color fillColor;
-  final Color borderColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final fillPaint = Paint()
-      ..color = fillColor
-      ..style = PaintingStyle.fill;
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3;
-
-    final path = Path()
-      ..moveTo(0, 0)
-      ..quadraticBezierTo(
-        size.width * 0.55,
-        size.height * 0.2,
-        size.width,
-        size.height,
-      )
-      ..quadraticBezierTo(size.width * 0.35, size.height * 0.9, 0, 0)
-      ..close();
-
-    canvas.drawPath(path, fillPaint);
-    canvas.drawPath(path, borderPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _SpeechBubbleTailPainter oldDelegate) {
-    return oldDelegate.fillColor != fillColor ||
-        oldDelegate.borderColor != borderColor;
   }
 }

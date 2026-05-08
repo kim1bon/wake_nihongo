@@ -207,6 +207,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   Future<void> _onDismissPressed() async {
     await widget.onDismiss();
     if (mounted) {
+      ref.invalidate(alarmsNotifierProvider);
       Navigator.of(context).pop();
     }
   }
@@ -312,7 +313,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         ],
                       ),
                     ),
-                    SizedBox(height: context.h(14)),
+                    SizedBox(height: context.h(40)),
                     Expanded(child: _buildQuizSection(theme)),
                     SizedBox(height: context.h(12)),
                     if (_loadError != null) ...[
@@ -347,6 +348,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                       ),
                       SizedBox(height: context.h(10)),
                     ],
+                    SizedBox(height: context.h(16)),
                     FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: AppPalette.beigeSoft,
@@ -443,7 +445,6 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
     return QuizChallengeBody(
       question: q,
       useAlarmStyleLayout: true,
-      thumbnailAssetPath: 'assets/images/Tx_Thumbnail.png',
       feedbackWrong: _wrong,
       wrongPickIndex: _wrongPickIndex,
       correctHighlightIndex: _correctPickIndex,

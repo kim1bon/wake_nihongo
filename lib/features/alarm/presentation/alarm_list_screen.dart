@@ -134,9 +134,11 @@ class _AlarmTile extends StatelessWidget {
       context,
     ).formatTimeOfDay(time, alwaysUse24HourFormat: false);
     final days = alarm.weekdays.toList()..sort();
-    final dayLabel = AlarmWeekdays.isEveryDay(alarm.weekdays)
-        ? '매일'
-        : days.map((d) => _weekdayShort[d]).join(', ');
+    final dayLabel = days.isEmpty
+        ? '없음'
+        : AlarmWeekdays.isEveryDay(alarm.weekdays)
+            ? '매일'
+            : days.map((d) => _weekdayShort[d]).join(', ');
 
     final soundLabel = AlarmSoundIds.label(alarm.soundId);
     return Card(

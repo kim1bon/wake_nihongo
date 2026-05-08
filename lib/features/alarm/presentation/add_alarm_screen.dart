@@ -117,12 +117,6 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
 
   Future<void> _save() async {
     if (_isSaving) return;
-    if (_weekdays.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('최소 한 요일을 선택하세요.')));
-      return;
-    }
 
     setState(() => _isSaving = true);
     try {

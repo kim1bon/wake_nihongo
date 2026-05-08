@@ -37,11 +37,17 @@ object AndroidAlarmScheduler {
             val minute = o.getInt("minute")
             val raw = o.optString("androidRaw", "basic")
             val wds = o.getJSONArray("weekdays")
-            for (j in 0 until wds.length()) {
-                val wd = wds.getInt(j)
-                val whenMs = nextOccurrenceMillis(wd, hour, minute)
-                scheduleAlarmAtMillis(context, id, wd, hour, minute, raw, whenMs)
-                newKeys.add(key(id, wd))
+            if (wds.length() == 0) {
+                val whenMs = nextOneShotMillis(hour, minute)
+                scheduleAlarmAtMillis(context, id, 0, hour, minute, raw, whenMs)
+                newKeys.add(key(id, 0))
+            } else {
+                for (j in 0 until wds.length()) {
+                    val wd = wds.getInt(j)
+                    val whenMs = nextOccurrenceMillis(wd, hour, minute)
+                    scheduleAlarmAtMillis(context, id, wd, hour, minute, raw, whenMs)
+                    newKeys.add(key(id, wd))
+                }
             }
         }
         prefs.edit().putStringSet(KEY_KEYS, newKeys).apply()
@@ -62,11 +68,17 @@ object AndroidAlarmScheduler {
             val minute = o.getInt("minute")
             val raw = o.optString("androidRaw", "basic")
             val wds = o.getJSONArray("weekdays")
-            for (j in 0 until wds.length()) {
-                val wd = wds.getInt(j)
-                val whenMs = nextOccurrenceMillis(wd, hour, minute)
-                scheduleAlarmAtMillis(context, id, wd, hour, minute, raw, whenMs)
-                newKeys.add(key(id, wd))
+            if (wds.length() == 0) {
+                val whenMs = nextOneShotMillis(hour, minute)
+                scheduleAlarmAtMillis(context, id, 0, hour, minute, raw, whenMs)
+                newKeys.add(key(id, 0))
+            } else {
+                for (j in 0 until wds.length()) {
+                    val wd = wds.getInt(j)
+                    val whenMs = nextOccurrenceMillis(wd, hour, minute)
+                    scheduleAlarmAtMillis(context, id, wd, hour, minute, raw, whenMs)
+                    newKeys.add(key(id, wd))
+                }
             }
         }
         prefs.edit().putStringSet(KEY_KEYS, newKeys).apply()
@@ -179,6 +191,21 @@ object AndroidAlarmScheduler {
             f = f or PendingIntent.FLAG_IMMUTABLE
         }
         return f
+    }
+
+    /** 요일 미선택(1회 알람): 오늘 시각이 지났으면 내일 동일 시각. */
+    private fun nextOneShotMillis(hour: Int, minute: Int): Long {
+        val zone = ZoneId.systemDefault()
+        var candidate = ZonedDateTime.now(zone)
+            .withHour(hour)
+            .withMinute(minute)
+            .withSecond(0)
+            .withNano(0)
+        val now = ZonedDateTime.now(zone)
+        if (!candidate.isAfter(now)) {
+            candidate = candidate.plusDays(1)
+        }
+        return candidate.toInstant().toEpochMilli()
     }
 
     private fun nextOccurrenceMillis(weekday: Int, hour: Int, minute: Int): Long {
