@@ -49,7 +49,9 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     if (a != null) {
       _time = TimeOfDay(hour: a.hour, minute: a.minute);
       _weekdays = Set<int>.from(a.weekdays);
-      _soundId = AlarmSoundIds.isValid(a.soundId) ? a.soundId : AlarmSoundIds.defaultId;
+      _soundId = AlarmSoundIds.isValid(a.soundId)
+          ? a.soundId
+          : AlarmSoundIds.defaultId;
       _rescheduleEnabled = a.rescheduleEnabled;
       _rescheduleDelayMinutes = a.rescheduleDelayMinutes.clamp(1, 15);
       _rescheduleMaxCount = a.rescheduleMaxCount.clamp(1, 10);
@@ -116,9 +118,9 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
   Future<void> _save() async {
     if (_isSaving) return;
     if (_weekdays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('최소 한 요일을 선택하세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('최소 한 요일을 선택하세요.')));
       return;
     }
 
@@ -346,10 +348,9 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final timeLabel = MaterialLocalizations.of(context).formatTimeOfDay(
-      _time,
-      alwaysUse24HourFormat: false,
-    );
+    final timeLabel = MaterialLocalizations.of(
+      context,
+    ).formatTimeOfDay(_time, alwaysUse24HourFormat: false);
 
     final rescheduleHeaderStyle = theme.textTheme.titleMedium?.copyWith(
       color: scheme.onSurface,
@@ -367,9 +368,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     final reschedulePanelDecoration = BoxDecoration(
       color: AppPalette.beigeContainer,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: AppPalette.green.withValues(alpha: 0.38),
-      ),
+      border: Border.all(color: AppPalette.green.withValues(alpha: 0.38)),
     );
     final pickerCupertinoTheme = CupertinoThemeData(
       brightness: Brightness.light,
@@ -444,10 +443,10 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '시간',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: AppPalette.navy.withValues(alpha: 0.88),
-                              fontWeight: FontWeight.w700,
+                            '時間 / じかん',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppPalette.onSurfaceVariantTone,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           SizedBox(height: context.h(4)),
@@ -459,13 +458,6 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                             ),
                           ),
                           SizedBox(height: context.h(2)),
-                          Text(
-                            '時間 / じかん',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppPalette.onSurfaceVariantTone,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -487,7 +479,8 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
               final chosen = await showModalBottomSheet<String>(
                 context: context,
                 isScrollControlled: true,
-                builder: (ctx) => AlarmSoundPickerSheet(initialSoundId: _soundId),
+                builder: (ctx) =>
+                    AlarmSoundPickerSheet(initialSoundId: _soundId),
               );
               if (chosen != null) {
                 setState(() => _soundId = chosen);
@@ -540,8 +533,10 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
           Text(
             '알람이 울릴 때 연기할 수 있습니다. 횟수를 다 쓰면 퀴즈로만 끌 수 있어요.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
-                ),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.75),
+            ),
           ),
           SizedBox(height: context.h(8)),
           SwitchListTile(
@@ -619,10 +614,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            '다시 알림 횟수',
-                            style: rescheduleHeaderStyle,
-                          ),
+                          child: Text('다시 알림 횟수', style: rescheduleHeaderStyle),
                         ),
                         Text(
                           '$_rescheduleMaxCount회',
@@ -694,6 +686,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
 }
 
 enum _DialSelectMode { hour, minute }
+
 enum _TimeInputMode { dial, keyboard }
 
 class _JapaneseDialTimePickerDialog extends StatefulWidget {
@@ -728,9 +721,12 @@ class _JapaneseDialTimePickerDialogState
     _hour12 = widget.to12Hour(widget.initial.hour);
     _minute = widget.initial.minute;
     _isPm = widget.initial.hour >= 12;
-    _hourController = TextEditingController(text: _hour12.toString().padLeft(2, '0'));
-    _minuteController =
-        TextEditingController(text: _minute.toString().padLeft(2, '0'));
+    _hourController = TextEditingController(
+      text: _hour12.toString().padLeft(2, '0'),
+    );
+    _minuteController = TextEditingController(
+      text: _minute.toString().padLeft(2, '0'),
+    );
   }
 
   @override
@@ -747,7 +743,8 @@ class _JapaneseDialTimePickerDialogState
     final hourText = _hour12.toString().padLeft(2, '0');
     final minuteText = _minute.toString().padLeft(2, '0');
     if (_hourController.text != hourText) _hourController.text = hourText;
-    if (_minuteController.text != minuteText) _minuteController.text = minuteText;
+    if (_minuteController.text != minuteText)
+      _minuteController.text = minuteText;
   }
 
   void _onHourTextChanged(String raw) {
@@ -1078,8 +1075,9 @@ class _JapaneseDialTimePickerDialogState
               ),
               onPressed: () {
                 final hour24 = widget.to24Hour(hour12: _hour12, isPm: _isPm);
-                Navigator.of(context)
-                    .pop(TimeOfDay(hour: hour24, minute: _minute));
+                Navigator.of(
+                  context,
+                ).pop(TimeOfDay(hour: hour24, minute: _minute));
               },
               child: const Text('확인'),
             ),
@@ -1140,10 +1138,7 @@ class _JapaneseDial extends StatelessWidget {
 }
 
 class _JapaneseDialPainter extends CustomPainter {
-  _JapaneseDialPainter({
-    required this.mode,
-    required this.selectedAngle,
-  });
+  _JapaneseDialPainter({required this.mode, required this.selectedAngle});
 
   final _DialSelectMode mode;
   final double selectedAngle;
@@ -1194,16 +1189,24 @@ class _JapaneseDialPainter extends CustomPainter {
     final labelEvery = mode == _DialSelectMode.hour ? 1 : 5;
     for (var i = 0; i < count; i++) {
       final a = (i / count) * 2 * math.pi - math.pi / 2;
-      final tickInner = center + Offset(math.cos(a), math.sin(a)) * (radius - 10);
-      final tickOuter = center + Offset(math.cos(a), math.sin(a)) * (radius - (i % labelEvery == 0 ? 2 : 5));
+      final tickInner =
+          center + Offset(math.cos(a), math.sin(a)) * (radius - 10);
+      final tickOuter =
+          center +
+          Offset(math.cos(a), math.sin(a)) *
+              (radius - (i % labelEvery == 0 ? 2 : 5));
       final tickPaint = Paint()
-        ..color = AppPalette.navy.withValues(alpha: i % labelEvery == 0 ? 0.35 : 0.18)
+        ..color = AppPalette.navy.withValues(
+          alpha: i % labelEvery == 0 ? 0.35 : 0.18,
+        )
         ..strokeWidth = i % labelEvery == 0 ? 1.5 : 1;
       canvas.drawLine(tickInner, tickOuter, tickPaint);
 
       if (i % labelEvery == 0) {
         final isHourMode = mode == _DialSelectMode.hour;
-        final label = isHourMode ? '${i == 0 ? 12 : i}' : i.toString().padLeft(2, '0');
+        final label = isHourMode
+            ? '${i == 0 ? 12 : i}'
+            : i.toString().padLeft(2, '0');
         final numberTp = TextPainter(
           text: TextSpan(
             text: label,
@@ -1219,9 +1222,7 @@ class _JapaneseDialPainter extends CustomPainter {
         )..layout();
         final jaTp = TextPainter(
           text: TextSpan(
-            text: isHourMode
-                ? _hourKanjiLabels[i]
-                : _minuteKanjiLabels[i ~/ 5],
+            text: isHourMode ? _hourKanjiLabels[i] : _minuteKanjiLabels[i ~/ 5],
             style: TextStyle(
               color: AppPalette.navy.withValues(alpha: 0.58),
               fontSize: isHourMode ? 9 : 8.5,
@@ -1232,7 +1233,8 @@ class _JapaneseDialPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        final pos = center +
+        final pos =
+            center +
             Offset(math.cos(a), math.sin(a)) * (radius - 26) -
             Offset(numberTp.width / 2, numberTp.height / 2);
         final numberDy = -3.5;
@@ -1245,8 +1247,12 @@ class _JapaneseDialPainter extends CustomPainter {
       }
     }
 
-    final handEnd = center +
-        Offset(math.cos(selectedAngle - math.pi / 2), math.sin(selectedAngle - math.pi / 2)) *
+    final handEnd =
+        center +
+        Offset(
+              math.cos(selectedAngle - math.pi / 2),
+              math.sin(selectedAngle - math.pi / 2),
+            ) *
             (radius - 34);
     final handPaint = Paint()
       ..color = AppPalette.green
@@ -1259,6 +1265,7 @@ class _JapaneseDialPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _JapaneseDialPainter oldDelegate) {
-    return oldDelegate.mode != mode || oldDelegate.selectedAngle != selectedAngle;
+    return oldDelegate.mode != mode ||
+        oldDelegate.selectedAngle != selectedAngle;
   }
 }

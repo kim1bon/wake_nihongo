@@ -220,25 +220,40 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
             final canSubmit =
                 selectedGender != null && selectedAgeBracket != null;
             final theme = Theme.of(context);
-            final screenWidth = MediaQuery.of(context).size.width;
-            final compact = screenWidth <= 420;
-            return Padding(
+            final media = MediaQuery.of(context);
+            final screenWidth = media.size.width;
+            final screenHeight = media.size.height;
+            // 1차 캡처 보정 기준:
+            // - S21급(약 360x780~800)은 compact로 분류
+            // - 더 작은/짧은 화면만 veryCompact로 분류
+            final isVeryCompact = screenWidth <= 350 || screenHeight <= 740;
+            final isCompact = screenWidth <= 395 || screenHeight <= 830;
+            final compact = isCompact;
+            final maxSheetHeightRatio = isVeryCompact
+                ? 0.80
+                : (isCompact ? 0.84 : 0.88);
+            final maxSheetHeight = screenHeight * maxSheetHeightRatio;
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
               padding: EdgeInsets.only(
                 left: compact ? context.w(12) : context.w(20),
                 right: compact ? context.w(12) : context.w(20),
                 top: compact ? context.h(10) : context.h(18),
-                bottom: MediaQuery.of(context).viewInsets.bottom +
-                    (compact ? context.h(12) : context.h(20)),
+                bottom: media.viewInsets.bottom +
+                    media.padding.bottom +
+                    (compact ? context.h(8) : context.h(12)),
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight:
-                      MediaQuery.of(context).size.height * (compact ? 0.84 : 0.88),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                constraints: BoxConstraints(maxHeight: maxSheetHeight),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                   Container(
                     width: compact ? context.r(38) : context.r(46),
                     height: compact ? context.r(38) : context.r(46),
@@ -306,103 +321,95 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                     ),
                   ),
                   SizedBox(height: compact ? context.h(10) : context.h(14)),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.fromLTRB(
-                              compact ? context.w(10) : context.w(14),
-                              compact ? context.h(8) : context.h(12),
-                              compact ? context.w(10) : context.w(14),
-                              compact ? context.h(4) : context.h(8),
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppPalette.beigeContainer,
-                              borderRadius: BorderRadius.circular(context.r(14)),
-                              border: Border.all(
-                                color: AppPalette.green.withValues(alpha: 0.30),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '성별',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    color: AppPalette.navy,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                RadioListTile<String>(
-                                  value: 'male',
-                                  groupValue: selectedGender,
-                                  onChanged: (v) => setDialogState(() => selectedGender = v),
-                                  title: Text('남', style: theme.textTheme.bodyMedium),
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  visualDensity: const VisualDensity(vertical: -2),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  activeColor: AppPalette.green,
-                                ),
-                                RadioListTile<String>(
-                                  value: 'female',
-                                  groupValue: selectedGender,
-                                  onChanged: (v) => setDialogState(() => selectedGender = v),
-                                  title: Text('녀', style: theme.textTheme.bodyMedium),
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  visualDensity: const VisualDensity(vertical: -2),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  activeColor: AppPalette.green,
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: compact ? context.h(8) : context.h(10)),
-                          Container(
-                            padding: EdgeInsets.fromLTRB(
-                              compact ? context.w(10) : context.w(14),
-                              compact ? context.h(8) : context.h(12),
-                              compact ? context.w(10) : context.w(14),
-                              compact ? context.h(4) : context.h(8),
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppPalette.beigeContainer,
-                              borderRadius: BorderRadius.circular(context.r(14)),
-                              border: Border.all(
-                                color: AppPalette.green.withValues(alpha: 0.30),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '연령대',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    color: AppPalette.navy,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                ...ageOptions.map(
-                                  (item) => RadioListTile<String>(
-                                    value: item.value,
-                                    groupValue: selectedAgeBracket,
-                                    onChanged: (v) =>
-                                        setDialogState(() => selectedAgeBracket = v),
-                                    title: Text(item.label, style: theme.textTheme.bodyMedium),
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    visualDensity: const VisualDensity(vertical: -2),
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    activeColor: AppPalette.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      compact ? context.w(10) : context.w(14),
+                      compact ? context.h(8) : context.h(12),
+                      compact ? context.w(10) : context.w(14),
+                      compact ? context.h(4) : context.h(8),
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppPalette.beigeContainer,
+                      borderRadius: BorderRadius.circular(context.r(14)),
+                      border: Border.all(
+                        color: AppPalette.green.withValues(alpha: 0.30),
                       ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '성별',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: AppPalette.navy,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        RadioListTile<String>(
+                          value: 'male',
+                          groupValue: selectedGender,
+                          onChanged: (v) => setDialogState(() => selectedGender = v),
+                          title: Text('남', style: theme.textTheme.bodyMedium),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          visualDensity: const VisualDensity(vertical: -2),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          activeColor: AppPalette.green,
+                        ),
+                        RadioListTile<String>(
+                          value: 'female',
+                          groupValue: selectedGender,
+                          onChanged: (v) => setDialogState(() => selectedGender = v),
+                          title: Text('녀', style: theme.textTheme.bodyMedium),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          visualDensity: const VisualDensity(vertical: -2),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          activeColor: AppPalette.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: compact ? context.h(8) : context.h(10)),
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      compact ? context.w(10) : context.w(14),
+                      compact ? context.h(8) : context.h(12),
+                      compact ? context.w(10) : context.w(14),
+                      compact ? context.h(4) : context.h(8),
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppPalette.beigeContainer,
+                      borderRadius: BorderRadius.circular(context.r(14)),
+                      border: Border.all(
+                        color: AppPalette.green.withValues(alpha: 0.30),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '연령대',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: AppPalette.navy,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        ...ageOptions.map(
+                          (item) => RadioListTile<String>(
+                            value: item.value,
+                            groupValue: selectedAgeBracket,
+                            onChanged: (v) =>
+                                setDialogState(() => selectedAgeBracket = v),
+                            title: Text(item.label, style: theme.textTheme.bodyMedium),
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            visualDensity: const VisualDensity(vertical: -2),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            activeColor: AppPalette.green,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   SizedBox(height: compact ? context.h(8) : context.h(12)),
@@ -432,6 +439,7 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                   ),
                 ],
               ),
+                ),
               ),
             );
           },
