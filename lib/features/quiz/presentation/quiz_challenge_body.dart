@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../domain/quiz_challenge_question.dart';
 import '../domain/quiz_prompt_mode.dart';
 
@@ -139,6 +140,10 @@ class QuizChallengeBody extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final theme = Theme.of(context);
+          final isCompactDevice = MediaQuery.sizeOf(context).width <= 380;
+          // A/B 미세 튜닝: 값(0.0 / 0.12 / 0.16)만 바꿔 높이 단계를 조절합니다.
+          const compactChoiceAspectStep = 0.16;
+          const regularChoiceAspectStep = 0.12;
           final isSentence = question.type.trim().toLowerCase() == 'sentence';
           final typeLabel = isSentence
               ? '2지선다 · ${question.type}'
@@ -150,15 +155,21 @@ class QuizChallengeBody extends StatelessWidget {
           /// 한→일은 발음 보조 줄 때문에 셀을 조금 더 높게.
           /// 1열(연습 모드·sentence)은 현재보다 약 50% 더 낮게 보이도록 가로:세로 비를 키웁니다.
           final choiceGridChildAspectRatio =
-              switch ((isSingleColumn, question.mode)) {
+              switch ((isSingleColumn, question.mode, isCompactDevice)) {
             // 연습 퀴즈(1열) 슬롯 높이를 기존 대비 약 2/3 수준으로 줄이기 위해
             // childAspectRatio를 약 1.5배로 증가시킵니다.
-            (true, QuizPromptMode.korToJp) => 5.1, // 기존 3.4 * 1.5
-            (true, _) => 5.7,                      // 기존 3.8 * 1.5
+            (true, QuizPromptMode.korToJp, true) => 5.6,
+            (true, QuizPromptMode.korToJp, false) => 5.1,
+            (true, _, true) => 6.2,
+            (true, _, false) => 5.7,
             // 2열(기존 알람 퀴즈 레이아웃)은 기존 값 유지
-            (false, QuizPromptMode.korToJp) => 1.95,
-            (false, _) => 2.3,
+            (false, QuizPromptMode.korToJp, true) => 2.12,
+            (false, QuizPromptMode.korToJp, false) => 1.95,
+            (false, _, true) => 2.48,
+            (false, _, false) => 2.3,
           };
+          final tunedChoiceGridChildAspectRatio = choiceGridChildAspectRatio +
+              (isCompactDevice ? compactChoiceAspectStep : regularChoiceAspectStep);
 
           if (useAlarmStyleLayout) {
             Widget buildChoiceButton(int i) {
@@ -183,7 +194,7 @@ class QuizChallengeBody extends StatelessWidget {
                   backgroundColor: background,
                   foregroundColor: foreground,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(context.r(14)),
                     side: BorderSide(
                       width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
                       color: showCorrectFill
@@ -193,9 +204,9 @@ class QuizChallengeBody extends StatelessWidget {
                               : AppPalette.navy.withValues(alpha: 0.10),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 10,
+                  padding: EdgeInsets.symmetric(
+                    vertical: context.h(isCompactDevice ? 2 : 4),
+                    horizontal: context.w(isCompactDevice ? 8 : 10),
                   ),
                 ),
                 onPressed: () => onPickIndex(i),
@@ -233,10 +244,15 @@ class QuizChallengeBody extends StatelessWidget {
                       children: [
                         Container(
                           margin: EdgeInsets.only(bottom: bubbleBottomGap),
-                          padding: const EdgeInsets.fromLTRB(18, 22, 18, 28),
+                          padding: EdgeInsets.fromLTRB(
+                            context.w(18),
+                            context.h(22),
+                            context.w(18),
+                            context.h(28),
+                          ),
                           decoration: BoxDecoration(
                             color: bubbleFill,
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(context.r(24)),
                             border: Border.all(color: wn.quizBubbleBorder),
                           ),
                           child: Column(
@@ -249,7 +265,7 @@ class QuizChallengeBody extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: context.h(12)),
                               _buildPromptTexts(theme, question),
                             ],
                           ),
@@ -293,10 +309,10 @@ class QuizChallengeBody extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: context.h(14)),
                     if (feedbackWrong)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: EdgeInsets.only(bottom: context.h(12)),
                         child: Text(
                           _wrongFeedbackMessage(),
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -318,7 +334,7 @@ class QuizChallengeBody extends StatelessWidget {
                                   for (var i = 0; i < question.choices.length; i++) ...[
                                     buildChoiceButton(i),
                                     if (i != question.choices.length - 1)
-                                      const SizedBox(height: 10),
+                                      SizedBox(height: context.h(isCompactDevice ? 8 : 10)),
                                   ],
                                 ],
                               )
@@ -327,11 +343,11 @@ class QuizChallengeBody extends StatelessWidget {
                                 shrinkWrap: true,
                                 itemCount: question.choices.length,
                                 physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
-                                  mainAxisSpacing: 10,
-                                  crossAxisSpacing: 10,
-                                  childAspectRatio: 2.3,
+                                  mainAxisSpacing: context.h(isCompactDevice ? 8 : 10),
+                                  crossAxisSpacing: context.w(isCompactDevice ? 8 : 10),
+                                  childAspectRatio: isCompactDevice ? 2.48 : 2.3,
                                 ),
                                 itemBuilder: (context, i) => buildChoiceButton(i),
                               ),
@@ -349,13 +365,18 @@ class QuizChallengeBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                padding: EdgeInsets.fromLTRB(
+                  context.w(16),
+                  context.h(20),
+                  context.w(16),
+                  context.h(20),
+                ),
                 decoration: BoxDecoration(
                   color: Color.alphaBlend(
                     AppPalette.beige.withValues(alpha: 0.08),
                     Colors.white.withValues(alpha: 0.44),
                   ),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(context.r(24)),
                   border: Border.all(color: context.wnColors.quizBubbleBorder),
                 ),
                 child: Column(
@@ -368,15 +389,15 @@ class QuizChallengeBody extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.h(12)),
                     _buildPromptTexts(theme, question),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: context.h(16)),
               if (feedbackWrong)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: context.h(12)),
                   child: Text(
                     _wrongFeedbackMessage(),
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -392,9 +413,9 @@ class QuizChallengeBody extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: choiceGridCrossAxisCount,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: choiceGridChildAspectRatio,
+                  mainAxisSpacing: context.h(10),
+                  crossAxisSpacing: context.w(10),
+                  childAspectRatio: tunedChoiceGridChildAspectRatio,
                 ),
                 itemBuilder: (context, i) {
                   final label = question.choices[i];
@@ -422,7 +443,7 @@ class QuizChallengeBody extends StatelessWidget {
                       backgroundColor: background,
                       foregroundColor: foreground,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(context.r(14)),
                         side: BorderSide(
                           width: showCorrectFill || showWrongFill ? 1.2 : 0.8,
                           color: showCorrectFill
@@ -434,9 +455,9 @@ class QuizChallengeBody extends StatelessWidget {
                                   : AppPalette.navy.withValues(alpha: 0.10),
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 4,
-                        horizontal: 10,
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.h(isCompactDevice ? 2 : 4),
+                        horizontal: context.w(isCompactDevice ? 8 : 10),
                       ),
                     ),
                     onPressed: () => onPickIndex(i),

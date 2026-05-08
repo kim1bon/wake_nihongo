@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/constants/alarm_weekdays.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../domain/alarm.dart';
 import 'alarm_providers.dart';
 import 'alarm_sound_picker_sheet.dart';
@@ -382,7 +383,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       ),
     );
     final pickerSelectionOverlay = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: context.w(12)),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppPalette.green.withValues(alpha: 0.10),
@@ -401,30 +402,35 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(isEdit ? '알람 수정' : '알람 추가')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.w(16)),
         children: [
           Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(context.r(14)),
               onTap: _pickTime,
               child: Ink(
                 decoration: BoxDecoration(
                   color: AppPalette.beigeContainer,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(context.r(14)),
                   border: Border.all(
                     color: AppPalette.green.withValues(alpha: 0.35),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+                padding: EdgeInsets.fromLTRB(
+                  context.w(14),
+                  context.h(14),
+                  context.w(12),
+                  context.h(14),
+                ),
                 child: Row(
                   children: [
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: context.r(38),
+                      height: context.r(38),
                       decoration: BoxDecoration(
                         color: AppPalette.green.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(context.r(10)),
                       ),
                       child: const Icon(
                         Icons.watch_later_outlined,
@@ -432,7 +438,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                         size: 21,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: context.w(12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,7 +450,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: context.h(4)),
                           Text(
                             timeLabel,
                             style: theme.textTheme.headlineSmall?.copyWith(
@@ -452,7 +458,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: context.h(2)),
                           Text(
                             '時間 / じかん',
                             style: theme.textTheme.bodySmall?.copyWith(
@@ -472,7 +478,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           ListTile(
             title: const Text('알람음'),
             subtitle: Text(AlarmSoundIds.label(_soundId)),
@@ -488,12 +494,12 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
               }
             },
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: context.h(16)),
           Text('반복 요일', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: context.w(8),
+            runSpacing: context.h(8),
             children: [
               FilterChip(
                 label: const Text('매일'),
@@ -528,16 +534,16 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
               }),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: context.h(24)),
           Text('다시 알림', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
+          SizedBox(height: context.h(4)),
           Text(
             '알람이 울릴 때 연기할 수 있습니다. 횟수를 다 쓰면 퀴즈로만 끌 수 있어요.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                 ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('다시 알림 사용'),
@@ -546,14 +552,19 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
             onChanged: (v) => setState(() => _rescheduleEnabled = v),
           ),
           if (_rescheduleEnabled) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: context.h(12)),
             Container(
               decoration: reschedulePanelDecoration,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                    padding: EdgeInsets.fromLTRB(
+                      context.w(16),
+                      context.h(14),
+                      context.w(16),
+                      context.h(6),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -570,7 +581,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                     ),
                   ),
                   SizedBox(
-                    height: _pickerVisibleHeight,
+                    height: context.h(_pickerVisibleHeight),
                     child: CupertinoTheme(
                       data: pickerCupertinoTheme,
                       child: CupertinoPicker(
@@ -599,7 +610,12 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                     color: AppPalette.navy.withValues(alpha: 0.10),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                    padding: EdgeInsets.fromLTRB(
+                      context.w(16),
+                      context.h(14),
+                      context.w(16),
+                      context.h(4),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -616,14 +632,19 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                    padding: EdgeInsets.fromLTRB(
+                      context.w(16),
+                      0,
+                      context.w(16),
+                      context.h(6),
+                    ),
                     child: Text(
                       '한 번 울릴 때 최대 몇 번 연기할 수 있는지',
                       style: rescheduleMutedStyle,
                     ),
                   ),
                   SizedBox(
-                    height: _pickerVisibleHeight,
+                    height: context.h(_pickerVisibleHeight),
                     child: CupertinoTheme(
                       data: pickerCupertinoTheme,
                       child: CupertinoPicker(
@@ -646,7 +667,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.h(8)),
                 ],
               ),
             ),
@@ -655,7 +676,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(context.w(16)),
           child: FilledButton(
             onPressed: _isSaving ? null : _save,
             child: _isSaving

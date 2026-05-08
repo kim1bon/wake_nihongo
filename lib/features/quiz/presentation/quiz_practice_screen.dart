@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ui/responsive.dart';
 import '../../settings/presentation/quiz_prompt_mode_notifier.dart';
 import '../domain/quiz_challenge_question.dart';
 import '../domain/quiz_entry.dart';
@@ -26,7 +27,7 @@ class QuizPracticeScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(context.w(24)),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -34,7 +35,7 @@ class QuizPracticeScreen extends ConsumerWidget {
                   '문제를 불러오지 못했습니다.\n$e',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.h(16)),
                 FilledButton(
                   onPressed: () => ref.invalidate(quizEntriesProvider),
                   child: const Text('다시 시도'),
@@ -110,7 +111,7 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
     if (q == null) {
       return SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(context.w(24)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -139,7 +140,7 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(context.w(24)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -172,7 +173,7 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: context.h(16)),
             FilledButton.icon(
               onPressed: _rollQuestion,
               icon: const Icon(Icons.refresh),

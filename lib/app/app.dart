@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/alarm_sound_ids.dart';
 import '../core/theme/theme.dart';
+import '../core/ui/responsive.dart';
 import '../features/alarm/data/alarm_native_android.dart';
 import '../features/alarm/presentation/alarm_providers.dart';
 import '../features/auth/data/firebase_auth_service.dart';
@@ -223,42 +224,44 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
             final compact = screenWidth <= 420;
             return Padding(
               padding: EdgeInsets.only(
-                left: compact ? 14 : 20,
-                right: compact ? 14 : 20,
-                top: compact ? 12 : 18,
-                bottom: MediaQuery.of(context).viewInsets.bottom + (compact ? 14 : 20),
+                left: compact ? context.w(12) : context.w(20),
+                right: compact ? context.w(12) : context.w(20),
+                top: compact ? context.h(10) : context.h(18),
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    (compact ? context.h(12) : context.h(20)),
               ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * (compact ? 0.84 : 0.88),
+                  maxHeight:
+                      MediaQuery.of(context).size.height * (compact ? 0.84 : 0.88),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                   Container(
-                    width: compact ? 40 : 46,
-                    height: compact ? 40 : 46,
+                    width: compact ? context.r(38) : context.r(46),
+                    height: compact ? context.r(38) : context.r(46),
                     decoration: BoxDecoration(
                       color: AppPalette.green.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(context.r(14)),
                     ),
                     child: Icon(
                       Icons.badge_outlined,
                       color: AppPalette.green,
-                      size: compact ? 20 : 24,
+                      size: compact ? context.r(20) : context.r(24),
                     ),
                   ),
-                  SizedBox(height: compact ? 8 : 12),
+                  SizedBox(height: compact ? context.h(8) : context.h(12)),
                   Text(
                     '기본 정보 설정',
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppPalette.navy,
-                      fontSize: compact ? 20 : null,
+                      fontSize: compact ? context.sp(20) : null,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: context.h(6)),
                   Text(
                     '통계 분석을 위해 성별과 연령대를 선택해 주세요.',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -266,12 +269,17 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                       height: 1.35,
                     ),
                   ),
-                  SizedBox(height: compact ? 6 : 8),
+                  SizedBox(height: compact ? context.h(6) : context.h(8)),
                   Container(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    padding: EdgeInsets.fromLTRB(
+                      context.w(10),
+                      context.h(8),
+                      context.w(10),
+                      context.h(8),
+                    ),
                     decoration: BoxDecoration(
                       color: AppPalette.green.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(context.r(10)),
                       border: Border.all(
                         color: AppPalette.green.withValues(alpha: 0.24),
                       ),
@@ -281,10 +289,10 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                       children: [
                         Icon(
                           Icons.info_outline,
-                          size: compact ? 14 : 16,
+                          size: compact ? context.r(14) : context.r(16),
                           color: AppPalette.navy.withValues(alpha: 0.8),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: context.w(8)),
                         Expanded(
                           child: Text(
                             '수집한 정보는 더 효율적인 학습 내용 제공을 위한 통계 목적으로 사용됩니다.',
@@ -297,21 +305,21 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                       ],
                     ),
                   ),
-                  SizedBox(height: compact ? 10 : 14),
+                  SizedBox(height: compact ? context.h(10) : context.h(14)),
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
                           Container(
                             padding: EdgeInsets.fromLTRB(
-                              compact ? 10 : 14,
-                              compact ? 8 : 12,
-                              compact ? 10 : 14,
-                              compact ? 4 : 8,
+                              compact ? context.w(10) : context.w(14),
+                              compact ? context.h(8) : context.h(12),
+                              compact ? context.w(10) : context.w(14),
+                              compact ? context.h(4) : context.h(8),
                             ),
                             decoration: BoxDecoration(
                               color: AppPalette.beigeContainer,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(context.r(14)),
                               border: Border.all(
                                 color: AppPalette.green.withValues(alpha: 0.30),
                               ),
@@ -351,17 +359,17 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                               ],
                             ),
                           ),
-                          SizedBox(height: compact ? 8 : 10),
+                          SizedBox(height: compact ? context.h(8) : context.h(10)),
                           Container(
                             padding: EdgeInsets.fromLTRB(
-                              compact ? 10 : 14,
-                              compact ? 8 : 12,
-                              compact ? 10 : 14,
-                              compact ? 4 : 8,
+                              compact ? context.w(10) : context.w(14),
+                              compact ? context.h(8) : context.h(12),
+                              compact ? context.w(10) : context.w(14),
+                              compact ? context.h(4) : context.h(8),
                             ),
                             decoration: BoxDecoration(
                               color: AppPalette.beigeContainer,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(context.r(14)),
                               border: Border.all(
                                 color: AppPalette.green.withValues(alpha: 0.30),
                               ),
@@ -397,15 +405,17 @@ class _WakeNihongoAppState extends ConsumerState<WakeNihongoApp>
                       ),
                     ),
                   ),
-                  SizedBox(height: compact ? 8 : 12),
+                  SizedBox(height: compact ? context.h(8) : context.h(12)),
                   FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: AppPalette.green,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppPalette.green.withValues(alpha: 0.35),
-                      padding: EdgeInsets.symmetric(vertical: compact ? 12 : 14),
+                      padding: EdgeInsets.symmetric(
+                        vertical: compact ? context.h(12) : context.h(14),
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(context.r(12)),
                       ),
                     ),
                     onPressed: canSubmit

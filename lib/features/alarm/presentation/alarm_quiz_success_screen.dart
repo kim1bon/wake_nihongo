@@ -9,6 +9,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 
 /// 응원 문구 한 세트.
 class CheerMessage {
@@ -192,10 +193,13 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
   Widget _buildTopNotice() {
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.w(18),
+          vertical: context.h(11),
+        ),
         decoration: BoxDecoration(
           color: AppPalette.beigeSoft.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(context.r(999)),
           border: Border.all(color: context.wnColors.successTopBannerBorder),
         ),
         child: Row(
@@ -203,16 +207,16 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
           children: [
             Icon(
               Icons.alarm,
-              size: 20,
+              size: context.r(20),
               color: Colors.white.withValues(alpha: 0.92),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: context.w(8)),
             Text(
               '알람을 종료할 수 있어요',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.94),
                 fontWeight: FontWeight.w600,
-                fontSize: 13.5,
+                fontSize: context.sp(13.5),
                 letterSpacing: -0.2,
               ),
             ),
@@ -231,8 +235,8 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
           child: ScaleTransition(
             scale: _checkScale,
             child: Container(
-              width: 80,
-              height: 80,
+              width: context.r(80),
+              height: context.r(80),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
@@ -246,13 +250,13 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
               ),
               child: Icon(
                 Icons.check_rounded,
-                size: 48,
+                size: context.r(48),
                 color: AppPalette.navy.withValues(alpha: 0.88),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: context.h(18)),
         FadeTransition(
           opacity: _titleFade,
           child: SlideTransition(
@@ -269,7 +273,7 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: context.h(16)),
         _buildBeigeDivider(),
       ],
     );
@@ -285,10 +289,10 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: EdgeInsets.symmetric(horizontal: context.w(8)),
           child: Icon(
             Icons.diamond_outlined,
-            size: 12,
+            size: context.r(12),
             color: AppPalette.beige.withValues(alpha: 0.75),
           ),
         ),
@@ -326,13 +330,13 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
-                fontSize: 11.5,
+                fontSize: context.sp(11.5),
                 height: 1.15,
                 letterSpacing: 0.8,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: context.h(4)),
             Text(
               message.jp,
               textAlign: TextAlign.center,
@@ -346,13 +350,13 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             ),
           ],
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: context.h(22)),
         Text(
           message.kor,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: AppPalette.beige,
-            fontSize: 18,
+            fontSize: context.sp(18),
             fontWeight: FontWeight.w700,
             height: 1.4,
             letterSpacing: -0.2,
@@ -364,7 +368,7 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: context.h(18)),
         _buildPronunciationCard(message.pronunciation),
       ],
     );
@@ -384,7 +388,12 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
         context.wnColors.pronunciationFillBlendGreen,
         Colors.black.withValues(alpha: 0.22),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: EdgeInsets.fromLTRB(
+        context.w(16),
+        context.h(14),
+        context.w(16),
+        context.h(14),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -392,26 +401,26 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             children: [
               Icon(
                 Icons.headphones,
-                size: 17,
+                size: context.r(17),
                 color: Colors.white.withValues(alpha: 0.82),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: context.w(8)),
               Text(
                 '한국어 발음',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.72),
-                  fontSize: 12.5,
+                  fontSize: context.sp(12.5),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           Text(
             pronunciation,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: context.sp(16),
               fontWeight: FontWeight.w600,
               letterSpacing: 0.35,
               height: 1.35,
@@ -423,7 +432,13 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
   }
 
   /// 하단 고정 느낌: 알람 끄기 + 다시 보기
-  Widget _buildBottomButtonArea() {
+  Widget _buildBottomButtonArea(bool isCompactDevice) {
+    // A/B 미세 튜닝: 0.0(기존) / 0.5(B안)로 텍스트 크기를 조절합니다.
+    const textStepSp = 0.5;
+    final primaryFontSize = context.sp(isCompactDevice ? 15.5 : 16.5) -
+        context.sp(textStepSp);
+    final secondaryFontSize = context.sp(isCompactDevice ? 12.5 : 13.5) -
+        context.sp(textStepSp);
     return FadeTransition(
       opacity: _buttonFade,
       child: Column(
@@ -435,23 +450,32 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             style: FilledButton.styleFrom(
               backgroundColor: AppPalette.beigeSoft,
               foregroundColor: AppPalette.navy,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(
+                vertical: context.h(isCompactDevice ? 13 : 16),
+              ),
+              minimumSize: Size.fromHeight(context.h(isCompactDevice ? 46 : 52)),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(context.r(14)),
               ),
               side: BorderSide(
                 color: context.wnColors.successPrimaryButtonBorder,
               ),
               elevation: 0,
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.notifications_off_outlined, size: 21),
-                SizedBox(width: 10),
+                Icon(
+                  Icons.notifications_off_outlined,
+                  size: context.r(isCompactDevice ? 19 : 21),
+                ),
+                SizedBox(width: context.w(isCompactDevice ? 8 : 10)),
                 Text(
                   '알람 끄기',
-                  style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: primaryFontSize,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -462,7 +486,7 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
               '다시 보기',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.62),
-                fontSize: 13.5,
+                fontSize: secondaryFontSize,
                 letterSpacing: 0.15,
               ),
             ),
@@ -475,8 +499,8 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final w = mq.size.width;
-    final padH = (w * 0.055).clamp(18.0, 28.0);
+    final isCompactDevice = mq.size.width <= 380;
+    final padH = context.w(22).clamp(18.0, 28.0);
     final viewInsets = mq.padding.bottom;
 
     return Theme(
@@ -504,12 +528,12 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(padH, 10, padH, 0),
+                padding: EdgeInsets.fromLTRB(padH, context.h(10), padH, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildTopNotice(),
-                    SizedBox(height: mq.size.height * 0.028),
+                    SizedBox(height: context.h(24)),
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -518,7 +542,7 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
                               parent: AlwaysScrollableScrollPhysics(),
                             ),
                             padding: EdgeInsets.only(
-                              bottom: 12 + viewInsets * 0.25,
+                              bottom: context.h(12) + viewInsets * 0.25,
                             ),
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
@@ -529,7 +553,7 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   _buildCorrectSection(),
-                                  SizedBox(height: mq.size.height * 0.028),
+                                  SizedBox(height: context.h(24)),
                                   _buildCheerMessage(),
                                 ],
                               ),
@@ -540,10 +564,10 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
                     ),
                     Padding(
                       padding: EdgeInsets.only(
-                        top: 8,
-                        bottom: 8 + mq.padding.bottom,
+                        top: context.h(isCompactDevice ? 6 : 8),
+                        bottom: context.h(isCompactDevice ? 6 : 8) + mq.padding.bottom,
                       ),
-                      child: _buildBottomButtonArea(),
+                      child: _buildBottomButtonArea(isCompactDevice),
                     ),
                   ],
                 ),

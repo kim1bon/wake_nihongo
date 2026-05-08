@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/alarm_pending_state_store.dart';
 import '../../../app/alarm_services.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../data/alarm_native_android.dart';
 import '../data/alarm_reschedule_session_store.dart';
 import '../domain/alarm.dart';
@@ -271,18 +272,23 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
             ),
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                padding: EdgeInsets.fromLTRB(
+                  context.w(20),
+                  context.h(12),
+                  context.w(20),
+                  context.h(20),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.w(14),
+                        vertical: context.h(10),
                       ),
                       decoration: BoxDecoration(
                         color: context.wnColors.alarmBannerFill,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(context.r(16)),
                         border: Border.all(
                           color: context.wnColors.alarmBannerBorder,
                         ),
@@ -292,10 +298,10 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         children: [
                           Icon(
                             Icons.alarm,
-                            size: 24,
+                            size: context.r(24),
                             color: Colors.white.withValues(alpha: 0.95),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: context.w(8)),
                           Text(
                             _bannerPrimaryLine,
                             style: theme.textTheme.titleSmall?.copyWith(
@@ -306,9 +312,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: context.h(14)),
                     Expanded(child: _buildQuizSection(theme)),
-                    const SizedBox(height: 12),
+                    SizedBox(height: context.h(12)),
                     if (_loadError != null) ...[
                       TextButton(
                         onPressed: () {
@@ -320,7 +326,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                         ),
                         child: const Text('문제 다시 불러오기'),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: context.h(8)),
                     ],
                     if (_showRescheduleButton) ...[
                       OutlinedButton(
@@ -329,9 +335,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                           side: BorderSide(
                             color: Colors.white.withValues(alpha: 0.92),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: EdgeInsets.symmetric(vertical: context.h(16)),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(context.r(14)),
                           ),
                         ),
                         onPressed: _onReschedulePressed,
@@ -339,7 +345,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                           '다시 알림 (${_boundAlarm!.rescheduleDelayMinutes}분 후 · 남음 $_rescheduleRemaining회)',
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: context.h(10)),
                     ],
                     FilledButton(
                       style: FilledButton.styleFrom(
@@ -349,9 +355,9 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                             AppPalette.beigeSoft.withValues(alpha: 0.55),
                         disabledForegroundColor:
                             AppPalette.navy.withValues(alpha: 0.45),
-                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        padding: EdgeInsets.symmetric(vertical: context.h(18)),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(context.r(14)),
                         ),
                         side: BorderSide(
                           color: context.wnColors.alarmPrimaryButtonBorder,
@@ -364,7 +370,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                     ),
                     if (!_canDismiss && _mustSolveQuiz)
                       Padding(
-                        padding: const EdgeInsets.only(top: 8),
+                        padding: EdgeInsets.only(top: context.h(8)),
                         child: Text(
                           _requiredQuestions > 1
                               ? '$_requiredQuestions개 모두 맞히면 버튼이 활성화됩니다.'

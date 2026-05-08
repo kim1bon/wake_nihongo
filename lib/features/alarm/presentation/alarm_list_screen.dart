@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/constants/alarm_weekdays.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../../quiz/presentation/quiz_practice_screen.dart';
 import '../domain/alarm.dart';
 import 'add_alarm_screen.dart';
@@ -36,7 +37,7 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.alarm, color: theme.colorScheme.onSurface),
-            const SizedBox(width: 8),
+            SizedBox(width: context.w(8)),
             const Text('알람'),
           ],
         ),
@@ -64,12 +65,17 @@ class _AlarmListScreenState extends ConsumerState<AlarmListScreen> {
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            padding: EdgeInsets.fromLTRB(
+              context.w(12),
+              context.h(8),
+              context.w(12),
+              context.h(12),
+            ),
             itemCount: alarms.length,
             itemBuilder: (context, index) {
               final alarm = alarms[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: context.h(8)),
                 child: _AlarmTile(
                   alarm: alarm,
                   onEdit: () async {
@@ -136,7 +142,12 @@ class _AlarmTile extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: ListTile(
-        contentPadding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
+        contentPadding: EdgeInsets.fromLTRB(
+          context.w(14),
+          context.h(6),
+          context.w(8),
+          context.h(6),
+        ),
         title: Text(
           label,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -145,7 +156,7 @@ class _AlarmTile extends StatelessWidget {
               ),
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
+          padding: EdgeInsets.only(top: context.h(2)),
           child: Text(
             '반복: $dayLabel · 알람음: $soundLabel',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(

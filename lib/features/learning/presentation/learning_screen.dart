@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 
 class _KanaCell {
   const _KanaCell(this.jp, this.ko);
@@ -313,7 +314,7 @@ class _LearningScreenState extends State<LearningScreen> {
             .map((k) {
               final selected = k == _selectedKind;
               return Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: EdgeInsets.only(right: context.w(8)),
                 child: ChoiceChip(
                   key: _kindButtonKeys[k],
                   selected: selected,
@@ -383,7 +384,7 @@ class _LearningScreenState extends State<LearningScreen> {
     if (sections.isEmpty) {
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(context.w(16)),
           child: Text('해당 학습 데이터가 없습니다.', style: theme.textTheme.bodyMedium),
         ),
       );
@@ -427,11 +428,11 @@ class _LearningScreenState extends State<LearningScreen> {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(context.w(16)),
         children: [
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           _buildKindSelector(theme),
-          const SizedBox(height: 14),
+          SizedBox(height: context.h(14)),
           FutureBuilder<List<_LearningRow>>(
             future: _learningFuture,
             builder: (context, snapshot) {
@@ -444,7 +445,7 @@ class _LearningScreenState extends State<LearningScreen> {
               if (snapshot.hasError) {
                 return Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(context.w(16)),
                     child: Text(
                       '학습 데이터를 불러오지 못했습니다.\n${snapshot.error}',
                       style: theme.textTheme.bodyMedium,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../../alarm/presentation/alarm_providers.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
@@ -204,7 +205,12 @@ class SettingsScreen extends ConsumerWidget {
         final theme = Theme.of(sheetContext);
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            padding: EdgeInsets.fromLTRB(
+              sheetContext.w(20),
+              sheetContext.h(8),
+              sheetContext.w(20),
+              sheetContext.h(20),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -215,7 +221,7 @@ class SettingsScreen extends ConsumerWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: sheetContext.h(14)),
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -238,7 +244,7 @@ class SettingsScreen extends ConsumerWidget {
                     title: const Text('이메일'),
                     subtitle: Text(email),
                   ),
-                const SizedBox(height: 12),
+                SizedBox(height: sheetContext.h(12)),
                 FilledButton.tonal(
                   onPressed: () async {
                     try {
@@ -265,7 +271,7 @@ class SettingsScreen extends ConsumerWidget {
                   },
                   child: const Text('로그아웃'),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: sheetContext.h(8)),
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: theme.colorScheme.error,
@@ -367,17 +373,25 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: context.h(8)),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(8),
+              context.w(16),
+              context.h(4),
+            ),
             child: Text(
               '계정',
               style: sectionTitleStyle,
             ),
           ),
           Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(4),
+            ),
             child: authStateAsync.when(
               loading: () => const ListTile(
                 leading: Icon(Icons.person_outline),
@@ -413,16 +427,24 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: context.h(16)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(8),
+              context.w(16),
+              context.h(4),
+            ),
             child: Text(
               '알람',
               style: sectionTitleStyle,
             ),
           ),
           Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(4),
+            ),
             child: Column(
               children: [
                 ListTile(
@@ -454,22 +476,35 @@ class SettingsScreen extends ConsumerWidget {
                       builder: (dialogContext) {
                         final theme = Theme.of(dialogContext);
                         return AlertDialog(
-                          insetPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 24,
+                          insetPadding: EdgeInsets.symmetric(
+                            horizontal: dialogContext.w(20),
+                            vertical: dialogContext.h(24),
                           ),
                           backgroundColor: AppPalette.beigeSoft,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(dialogContext.r(18)),
                             side: BorderSide(
                               color: AppPalette.green.withValues(alpha: 0.28),
                             ),
                           ),
-                          titlePadding: const EdgeInsets.fromLTRB(18, 18, 18, 6),
-                          contentPadding:
-                              const EdgeInsets.fromLTRB(18, 10, 18, 10),
-                          actionsPadding:
-                              const EdgeInsets.fromLTRB(16, 2, 16, 18),
+                          titlePadding: EdgeInsets.fromLTRB(
+                            dialogContext.w(18),
+                            dialogContext.h(18),
+                            dialogContext.w(18),
+                            dialogContext.h(6),
+                          ),
+                          contentPadding: EdgeInsets.fromLTRB(
+                            dialogContext.w(18),
+                            dialogContext.h(10),
+                            dialogContext.w(18),
+                            dialogContext.h(10),
+                          ),
+                          actionsPadding: EdgeInsets.fromLTRB(
+                            dialogContext.w(16),
+                            dialogContext.h(2),
+                            dialogContext.w(16),
+                            dialogContext.h(18),
+                          ),
                           title: Row(
                             children: [
                               Container(
@@ -477,7 +512,7 @@ class SettingsScreen extends ConsumerWidget {
                                 height: 34,
                                 decoration: BoxDecoration(
                                   color: AppPalette.green.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(dialogContext.r(10)),
                                 ),
                                 child: const Icon(
                                   Icons.phone_iphone,
@@ -502,15 +537,15 @@ class SettingsScreen extends ConsumerWidget {
                             child: SingleChildScrollView(
                               child: Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  14,
-                                  14,
-                                  14,
+                                padding: EdgeInsets.fromLTRB(
+                                  dialogContext.w(14),
+                                  dialogContext.h(14),
+                                  dialogContext.w(14),
+                                  dialogContext.h(14),
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppPalette.beigeContainer,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(dialogContext.r(12)),
                                   border: Border.all(
                                     color: AppPalette.green
                                         .withValues(alpha: 0.35),
@@ -543,10 +578,10 @@ class SettingsScreen extends ConsumerWidget {
                                   backgroundColor: AppPalette.green,
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(dialogContext.r(12)),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: dialogContext.h(14),
                                   ),
                                 ),
                                 onPressed: () =>
@@ -563,27 +598,40 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: context.h(16)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(8),
+              context.w(16),
+              context.h(4),
+            ),
             child: Text(
               '알람 해제 퀴즈',
               style: sectionTitleStyle,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: context.w(16)),
             child: Text(
               '알람을 끌 때 출제되는 문제 범위입니다. 카테고리를 펼치면 해당 묶음의 레벨만 골라 출제할 수 있습니다. '
               '시트의「category」「level」열과 같으며, type이 sentence면 2지·그 외 4지입니다.',
               style: panelDescStyle,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            margin: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(4),
+            ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                context.w(16),
+                context.h(14),
+                context.w(16),
+                context.h(16),
+              ),
               child: quizPromptModeAsync.when(
                 loading: () => const ListTile(
                   title: Text('문제 방식'),
@@ -612,10 +660,15 @@ class SettingsScreen extends ConsumerWidget {
                         final questionLabel = isKorToJp ? '한국어' : '일본어';
                         final answerLabel = isKorToJp ? '일본어' : '한국어';
                         return Container(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                          padding: EdgeInsets.fromLTRB(
+                            context.w(12),
+                            context.h(12),
+                            context.w(12),
+                            context.h(10),
+                          ),
                           decoration: BoxDecoration(
                             color: AppPalette.beigeSoft.withValues(alpha: 0.65),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(context.r(12)),
                             border: Border.all(
                               color: AppPalette.green.withValues(alpha: 0.28),
                             ),
@@ -638,8 +691,9 @@ class SettingsScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 8),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: context.w(8),
+                                    ),
                                     child: StatefulBuilder(
                                       builder: (context, setPressedState) {
                                         var isPressed = false;
@@ -733,9 +787,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(8),
+            ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              padding: EdgeInsets.fromLTRB(
+                context.w(16),
+                context.h(14),
+                context.w(16),
+                context.h(16),
+              ),
               child: alarmQuizCountAsync.when(
                 loading: () => const ListTile(
                   title: Text('알람 시 문제 개수'),
@@ -780,20 +842,25 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(8),
+              context.w(16),
+              context.h(4),
+            ),
             child: Text(
               '카테고리 · 레벨',
               style: sectionTitleStyle,
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: context.w(16)),
             child: Text(
               '카테고리를 모두 켜 두면 전체에서 출제됩니다. 펼친 뒤 레벨을 일부만 켜 두면 그 카테고리는 선택한 레벨만 출제됩니다.',
               style: panelDescStyle,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.h(8)),
           entriesAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(32),
@@ -826,8 +893,8 @@ class SettingsScreen extends ConsumerWidget {
                     data: (levelsByCategory) {
                       final allCats = _sortedCategoryNames(entries);
                       if (allCats.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: context.w(16)),
                           child: Card(
                             child: ListTile(
                               title: Text('불러온 데이터에 카테고리가 없습니다.'),
@@ -836,7 +903,10 @@ class SettingsScreen extends ConsumerWidget {
                         );
                       }
                       return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        margin: EdgeInsets.symmetric(
+                          horizontal: context.w(16),
+                          vertical: context.h(8),
+                        ),
                         clipBehavior: Clip.antiAlias,
                         child: Column(
                           children: [
@@ -875,16 +945,24 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: context.h(12)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              context.h(8),
+              context.w(16),
+              context.h(4),
+            ),
             child: Text(
               '로컬 데이터',
               style: sectionTitleStyle,
             ),
           ),
           Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: EdgeInsets.symmetric(
+              horizontal: context.w(16),
+              vertical: context.h(8),
+            ),
             child: Column(
               children: [
                 ListTile(
@@ -910,7 +988,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: EdgeInsets.fromLTRB(
+              context.w(16),
+              0,
+              context.w(16),
+              context.h(8),
+            ),
             child: remoteQuizVersionAsync.when(
               loading: () => const SizedBox.shrink(),
               error: (_, _) => const SizedBox.shrink(),
@@ -958,15 +1041,25 @@ class _CategoryLevelExpansionTile extends StatelessWidget {
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.fromLTRB(10, 2, 14, 2),
-        childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+        tilePadding: EdgeInsets.fromLTRB(
+          context.w(10),
+          context.h(2),
+          context.w(14),
+          context.h(2),
+        ),
+        childrenPadding: EdgeInsets.fromLTRB(
+          context.w(8),
+          0,
+          context.w(8),
+          context.h(10),
+        ),
         collapsedBackgroundColor: AppPalette.beigeContainer.withValues(alpha: 0.35),
         backgroundColor: AppPalette.beigeContainer.withValues(alpha: 0.50),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(context.r(10)),
         ),
         collapsedShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(context.r(10)),
         ),
         leading: Checkbox(
           visualDensity: VisualDensity.compact,

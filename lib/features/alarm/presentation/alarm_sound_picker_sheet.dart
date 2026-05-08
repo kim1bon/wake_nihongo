@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/alarm_sound_ids.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/ui/responsive.dart';
 import '../data/alarm_playback_session.dart';
 import '../data/alarm_preview_audio_native.dart';
 
@@ -97,11 +98,16 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isCompactDevice = MediaQuery.sizeOf(context).width <= 380;
+    // A/B 미세 튜닝: 0.0(기존) / 2.0(B안)으로 타일 밀도를 조절합니다.
+    const tileHeightStepDp = 2.0;
+    final compactTileHeight = 46.0 - tileHeightStepDp;
+    final regularTileHeight = 54.0 - tileHeightStepDp;
     return SafeArea(
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppPalette.beigeSoft,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(context.r(22))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -109,17 +115,22 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
           children: [
             Center(
               child: Container(
-                width: 44,
-                height: 5,
-                margin: const EdgeInsets.only(top: 10),
+                width: context.w(isCompactDevice ? 40 : 44),
+                height: context.h(isCompactDevice ? 4 : 5),
+                margin: EdgeInsets.only(top: context.h(isCompactDevice ? 8 : 10)),
                 decoration: BoxDecoration(
                   color: AppPalette.navy.withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(context.r(999)),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: EdgeInsets.fromLTRB(
+                context.w(16),
+                context.h(isCompactDevice ? 12 : 14),
+                context.w(16),
+                0,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -135,9 +146,12 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppPalette.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: context.w(isCompactDevice ? 14 : 16),
+                        vertical: context.h(isCompactDevice ? 8 : 10),
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(context.r(10)),
                       ),
                     ),
                     onPressed: () => Navigator.pop(context, _selectedId),
@@ -147,12 +161,22 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                context.w(16),
+                context.h(isCompactDevice ? 10 : 12),
+                context.w(16),
+                context.h(isCompactDevice ? 6 : 8),
+              ),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                padding: EdgeInsets.fromLTRB(
+                  context.w(12),
+                  context.h(isCompactDevice ? 10 : 12),
+                  context.w(12),
+                  context.h(isCompactDevice ? 10 : 12),
+                ),
                 decoration: BoxDecoration(
                   color: AppPalette.beigeContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(context.r(12)),
                   border: Border.all(color: AppPalette.green.withValues(alpha: 0.3)),
                 ),
                 child: Text(
@@ -177,19 +201,29 @@ class _AlarmSoundPickerSheetState extends State<AlarmSoundPickerSheet> {
                   final id = AlarmSoundIds.all[index];
                   final isSelected = id == _selectedId;
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    dense: isCompactDevice,
+                    visualDensity: VisualDensity(
+                      vertical: isCompactDevice ? -1.6 : -0.8,
+                    ),
+                    minTileHeight: context.h(
+                      isCompactDevice ? compactTileHeight : regularTileHeight,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: context.w(16),
+                      vertical: context.h(isCompactDevice ? 0 : 2),
+                    ),
                     leading: Container(
-                      width: 30,
-                      height: 30,
+                      width: context.r(isCompactDevice ? 26 : 30),
+                      height: context.r(isCompactDevice ? 26 : 30),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppPalette.green.withValues(alpha: 0.18)
                             : AppPalette.beigeContainer,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(context.r(8)),
                       ),
                       child: Icon(
                         Icons.music_note_rounded,
-                        size: 18,
+                        size: context.r(isCompactDevice ? 16 : 18),
                         color: isSelected ? AppPalette.green : AppPalette.navy.withValues(alpha: 0.75),
                       ),
                     ),
