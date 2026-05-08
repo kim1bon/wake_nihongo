@@ -80,13 +80,13 @@
 		E1B100021CF9000F007C117D /* Alram_02.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_02.mp3; sourceTree = "<group>"; };
 		E1B100031CF9000F007C117D /* Alram_03.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_03.mp3; sourceTree = "<group>"; };
 		E1B100041CF9000F007C117D /* Alram_04.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = Alram_04.mp3; sourceTree = "<group>"; };
+		E6A56E356C9E10DA9180B64B /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		F10000011CF9000F007C117D /* basic.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = basic.mp3; sourceTree = "<group>"; };
 		F10000021CF9000F007C117D /* chicken.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = chicken.mp3; sourceTree = "<group>"; };
 		F10000031CF9000F007C117D /* clear_horizon.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = clear_horizon.mp3; sourceTree = "<group>"; };
 		F10000041CF9000F007C117D /* japan_signal.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = japan_signal.mp3; sourceTree = "<group>"; };
 		F10000051CF9000F007C117D /* alarm_clock.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = alarm_clock.mp3; sourceTree = "<group>"; };
 		F10000061CF9000F007C117D /* ghibli_style.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = ghibli_style.mp3; sourceTree = "<group>"; };
-		E6A56E356C9E10DA9180B64B /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,7 +127,6 @@
 				81F88B28612E6EA8C942841D /* Pods-RunnerTests.release.xcconfig */,
 				068AB217C273A7EF59245898 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -232,6 +231,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				565E5CD16B8FFEE85FE7CA52 /* [CP] Embed Pods Frameworks */,
+				52162D58E2CDC8AB21EE9CB4 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -350,6 +350,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		52162D58E2CDC8AB21EE9CB4 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		565E5CD16B8FFEE85FE7CA52 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -514,7 +531,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = Q9WF64KZP3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -696,7 +715,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = Q9WF64KZP3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -718,7 +739,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = Q9WF64KZP3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
