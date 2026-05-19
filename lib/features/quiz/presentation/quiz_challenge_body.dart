@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/theme.dart';
@@ -34,28 +36,106 @@ class QuizChallengeBody extends StatelessWidget {
   final int? wrongPickIndex;
   final int? correctHighlightIndex;
 
-  Widget _buildPromptTexts(ThemeData theme, QuizChallengeQuestion q) {
+  /// 모드·2/4지에 맞는 안내 문구 (질문과 같은 언어).
+  String _promptInstruction(QuizChallengeQuestion q) {
+    final isSentence = q.type.trim().toLowerCase() == 'sentence';
+    return switch (q.mode) {
+      QuizPromptMode.jpToKor => isSentence
+          ? '次の文の意味を選んでください'
+          : '次の日本語の意味を選んでください',
+      QuizPromptMode.korToJp => isSentence
+          ? '다음 문장에 맞는 일본어를 고르세요'
+          : '다음 한국어에 맞는 일본어를 고르세요',
+    };
+  }
+
+  Widget _buildPromptTexts(
+    BuildContext context,
+    ThemeData theme,
+    QuizChallengeQuestion q,
+  ) {
     final h = q.promptSecondary;
+    final instructionStyle = theme.textTheme.titleSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      height: 1.4,
+    );
+    final promptStyle = theme.textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.w800,
+      height: 1.25,
+    );
+    final subStyle = theme.textTheme.titleMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      height: 1.3,
+    );
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          q.promptPrimary,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          _promptInstruction(q),
+          style: instructionStyle,
+          textAlign: TextAlign.center,
         ),
-        if (h != null && h.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            h,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+        SizedBox(height: context.h(12)),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: context.w(12),
+            vertical: context.h(14),
+          ),
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              AppPalette.beige.withValues(alpha: 0.14),
+              theme.colorScheme.surface.withValues(alpha: 0.4),
+            ),
+            borderRadius: BorderRadius.circular(context.r(10)),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                q.promptPrimary,
+                style: promptStyle,
+                textAlign: TextAlign.center,
+              ),
+              if (h != null && h.isNotEmpty) ...[
+                SizedBox(height: context.h(8)),
+                Text(
+                  h,
+                  style: subStyle,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildQuizBubbleCard(BuildContext context, {required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        context.w(14),
+        context.h(14),
+        context.w(14),
+        context.h(14),
+      ),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          AppPalette.beige.withValues(alpha: 0.08),
+          Colors.white.withValues(alpha: 0.44),
+        ),
+        borderRadius: BorderRadius.circular(context.r(14)),
+        border: Border.all(color: context.wnColors.quizBubbleBorder),
+      ),
+      child: child,
     );
   }
 
@@ -72,6 +152,70 @@ class QuizChallengeBody extends StatelessWidget {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
     return '「$quoted」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
+  }
+
+  /// 2지선다(전체 너비) 기준 답안 버튼 한 칸의 세로 높이.
+  double _alarmChoiceButtonHeightAtFullWidth(
+    BuildContext context,
+    ThemeData theme,
+    int index,
+    double fullWidth,
+    bool isCompactDevice,
+  ) {
+    final horizontalPad = context.w(isCompactDevice ? 8 : 10);
+    final verticalStylePad = context.h((isCompactDevice ? 2.0 : 4.0) * 1.3);
+    final childVerticalPad = context.h(4);
+    final textMaxWidth =
+        math.max(0.0, fullWidth - horizontalPad * 2).toDouble();
+    const compact = true;
+
+    final contentHeight = _measureChoiceContentHeight(
+      theme: theme,
+      index: index,
+      maxWidth: textMaxWidth,
+      compact: compact,
+    );
+    return verticalStylePad * 2 + childVerticalPad * 2 + contentHeight;
+  }
+
+  double _measureChoiceContentHeight({
+    required ThemeData theme,
+    required int index,
+    required double maxWidth,
+    required bool compact,
+  }) {
+    final label = question.choices[index];
+    final titleStyle =
+        (compact ? theme.textTheme.titleMedium : theme.textTheme.titleLarge)
+            ?.copyWith(fontWeight: FontWeight.w800);
+    final subStyle = theme.textTheme.bodySmall?.copyWith(
+      fontSize: compact ? 11 : null,
+      fontWeight: FontWeight.w600,
+    );
+
+    final titlePainter = TextPainter(
+      text: TextSpan(text: label, style: titleStyle),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+      maxLines: compact ? 2 : null,
+    )..layout(maxWidth: maxWidth);
+    var height = titlePainter.height;
+
+    final raw = index < question.choiceKorPronunciations.length
+        ? question.choiceKorPronunciations[index]
+        : null;
+    final sub = raw?.trim();
+    if (sub != null && sub.isNotEmpty) {
+      height += 4;
+      final subPainter = TextPainter(
+        text: TextSpan(text: sub, style: subStyle),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+        maxLines: compact ? 2 : null,
+      )..layout(maxWidth: maxWidth);
+      height += subPainter.height;
+    }
+    return height;
   }
 
   Widget _choiceButtonChild(
@@ -175,7 +319,13 @@ class QuizChallengeBody extends StatelessWidget {
                   1.3;
 
           if (useAlarmStyleLayout) {
-            Widget buildChoiceButton(int i) {
+            /// 4지선다도 2지선다와 동일한 텍스트·높이 기준(compact)을 씁니다.
+            const alarmChoiceCompact = true;
+
+            Widget buildChoiceButton(
+              int i, {
+              double? fixedHeight,
+            }) {
               final label = question.choices[i];
               final showCorrectFill =
                   correctHighlightIndex != null && correctHighlightIndex == i;
@@ -191,11 +341,13 @@ class QuizChallengeBody extends StatelessWidget {
                   : showWrongFill
                       ? theme.colorScheme.onError
                       : theme.colorScheme.onSurface;
-              return ElevatedButton(
+              final button = ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   backgroundColor: background,
                   foregroundColor: foreground,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(context.r(14)),
                     side: BorderSide(
@@ -222,52 +374,75 @@ class QuizChallengeBody extends StatelessWidget {
                     i,
                     label,
                     foreground,
-                    isSingleColumn,
+                    alarmChoiceCompact,
                   ),
                 ),
+              );
+              if (fixedHeight == null) {
+                return button;
+              }
+              return SizedBox(
+                height: fixedHeight,
+                width: double.infinity,
+                child: button,
+              );
+            }
+
+            Widget buildAlarmFourChoiceGrid(double fullWidth) {
+              final crossSpacing = context.w(isCompactDevice ? 8 : 10);
+              final mainSpacing = context.h(isCompactDevice ? 8 : 10);
+
+              Widget rowCell(int index) {
+                final height = _alarmChoiceButtonHeightAtFullWidth(
+                  context,
+                  theme,
+                  index,
+                  fullWidth,
+                  isCompactDevice,
+                );
+                return Expanded(
+                  child: buildChoiceButton(index, fixedHeight: height),
+                );
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      rowCell(0),
+                      SizedBox(width: crossSpacing),
+                      rowCell(1),
+                    ],
+                  ),
+                  SizedBox(height: mainSpacing),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      rowCell(2),
+                      SizedBox(width: crossSpacing),
+                      rowCell(3),
+                    ],
+                  ),
+                ],
               );
             }
 
             return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: EdgeInsets.fromLTRB(
-                        context.w(14),
-                        context.h(14),
-                        context.w(14),
-                        context.h(14),
-                      ),
-                      decoration: BoxDecoration(
-                        color: Color.alphaBlend(
-                          AppPalette.beige.withValues(alpha: 0.08),
-                          Colors.white.withValues(alpha: 0.44),
-                        ),
-                        borderRadius: BorderRadius.circular(context.r(14)),
-                        border: Border.all(
-                          color: context.wnColors.quizBubbleBorder,
-                        ),
-                      ),
+                    _buildQuizBubbleCard(
+                      context,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildPromptTexts(theme, question),
+                          _buildPromptTexts(context, theme, question),
                         ],
                       ),
                     ),
                     SizedBox(height: context.h(14)),
-                    if (feedbackWrong)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: context.h(12)),
-                        child: Text(
-                          _wrongFeedbackMessage(),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.error,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {
@@ -284,6 +459,23 @@ class QuizChallengeBody extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  if (feedbackWrong)
+                                    Padding(
+                                      padding:
+                                          EdgeInsets.only(bottom: context.h(12)),
+                                      child: _buildQuizBubbleCard(
+                                        context,
+                                        child: Text(
+                                          _wrongFeedbackMessage(),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            color: theme.colorScheme.error,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
                                   if (choiceGridCrossAxisCount == 1)
                                     Column(
                                       crossAxisAlignment:
@@ -303,25 +495,8 @@ class QuizChallengeBody extends StatelessWidget {
                                       ],
                                     )
                                   else
-                                    GridView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: question.choices.length,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        mainAxisSpacing: context.h(
-                                          isCompactDevice ? 8 : 10,
-                                        ),
-                                        crossAxisSpacing: context.w(
-                                          isCompactDevice ? 8 : 10,
-                                        ),
-                                        childAspectRatio:
-                                            tunedChoiceGridChildAspectRatio,
-                                      ),
-                                      itemBuilder: (context, i) =>
-                                          buildChoiceButton(i),
+                                    buildAlarmFourChoiceGrid(
+                                      constraints.maxWidth,
                                     ),
                                 ],
                               ),
@@ -352,7 +527,7 @@ class QuizChallengeBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildPromptTexts(theme, question),
+                _buildPromptTexts(context, theme, question),
               ],
             ),
           );

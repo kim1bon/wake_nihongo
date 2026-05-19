@@ -9,7 +9,7 @@ final alarmQuizQuestionCountProvider =
 /// 알람 해제까지 맞혀야 하는 퀴즈 개수 (1~3).
 class AlarmQuizQuestionCountNotifier extends AsyncNotifier<int> {
   static const String _prefsKey = 'alarm_quiz_question_count_v1';
-  static const int defaultCount = 1;
+  static const int defaultCount = 2;
   static const int minCount = 1;
   static const int maxCount = 3;
 

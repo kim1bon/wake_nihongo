@@ -1,16 +1,16 @@
 /// 퀴즈 제시 방향: 설정·출제·UI에서 공통으로 사용합니다.
 enum QuizPromptMode {
-  /// 한국어 제시 → 일본어 선택 (기본값).
+  /// 한국어 제시 → 일본어 선택.
   korToJp,
 
-  /// 일본어 제시 → 한국어 선택.
+  /// 일본어 제시 → 한국어 선택 (기본값).
   jpToKor;
 
   static QuizPromptMode fromStorage(String? value) {
-    if (value == jpToKor.storageValue) {
-      return QuizPromptMode.jpToKor;
+    if (value == korToJp.storageValue) {
+      return QuizPromptMode.korToJp;
     }
-    return QuizPromptMode.korToJp;
+    return QuizPromptMode.jpToKor;
   }
 
   String get storageValue => switch (this) {

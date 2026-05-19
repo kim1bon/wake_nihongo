@@ -49,7 +49,7 @@ class QuizGenerator {
   static QuizChallengeQuestion? generate(
     List<QuizEntry> entries, {
     Random? random,
-    QuizPromptMode mode = QuizPromptMode.korToJp,
+    QuizPromptMode mode = QuizPromptMode.jpToKor,
   }) {
     return switch (mode) {
       QuizPromptMode.jpToKor => _generateJpToKor(entries, random: random),
