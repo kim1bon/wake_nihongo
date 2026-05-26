@@ -9,6 +9,7 @@ class QuizEntry {
     required this.kor,
     required this.korPronunciation,
     required this.hiraganaDisplay,
+    this.incorrectPoolIds,
   });
 
   final String id;
@@ -22,4 +23,7 @@ class QuizEntry {
   final String kor;
   final String korPronunciation;
   final bool hiraganaDisplay;
+
+  /// 오답 풀 id 목록. 비어 있거나 `null`이면 그룹 전체에서 기존 규칙대로 오답을 고릅니다.
+  final List<String>? incorrectPoolIds;
 }

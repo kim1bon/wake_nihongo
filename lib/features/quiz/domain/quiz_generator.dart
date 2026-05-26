@@ -69,6 +69,171 @@ class QuizGenerator {
     return groups;
   }
 
+  static QuizChallengeQuestion? _buildQuestionForGroup({
+    required List<QuizEntry> pool,
+    required QuizPromptMode mode,
+    required Random random,
+  }) {
+    if (pool.isEmpty) return null;
+    final type = pool.first.type.trim();
+    final n = choiceCountForType(type);
+    if (n <= 1) return null;
+
+    QuizEntry pickEntryForLabel(
+      String label, {
+      required String correctLabel,
+      required QuizEntry correctEntry,
+      required Map<String, QuizEntry> poolLabelSource,
+      required Map<String, QuizEntry> anyLabelSource,
+    }) {
+      if (label == correctLabel) {
+        return correctEntry;
+      }
+      final fromPool = poolLabelSource[label];
+      if (fromPool != null) return fromPool;
+      final any = anyLabelSource[label];
+      return any ?? correctEntry;
+    }
+
+    final correctEntry = pool[random.nextInt(pool.length)];
+    final correctLabel = switch (mode) {
+      QuizPromptMode.jpToKor => correctEntry.kor.trim(),
+      QuizPromptMode.korToJp => correctEntry.jp.trim(),
+    };
+    if (correctLabel.isEmpty) {
+      return null;
+    }
+
+    // 전체 후보에서 label ↔ 대표 entry 매핑 구성.
+    final baseCandidates = <String, QuizEntry>{};
+    for (final e in pool) {
+      final label = switch (mode) {
+        QuizPromptMode.jpToKor => e.kor.trim(),
+        QuizPromptMode.korToJp => e.jp.trim(),
+      };
+      if (label.isEmpty || label == correctLabel) continue;
+      baseCandidates.putIfAbsent(label, () => e);
+    }
+
+    if (baseCandidates.length < n - 1) {
+      return null;
+    }
+
+    // incorrect_pool 기반 우선 오답.
+    final incorrectPoolIds = correctEntry.incorrectPoolIds;
+    final fromPoolLabels = <String>[];
+    final fromPoolLabelSource = <String, QuizEntry>{};
+    if (incorrectPoolIds != null && incorrectPoolIds.isNotEmpty) {
+      final entriesById = <String, List<QuizEntry>>{};
+      for (final e in pool) {
+        entriesById.putIfAbsent(e.id.trim(), () => []).add(e);
+      }
+      for (final rawId in incorrectPoolIds) {
+        final id = rawId.trim();
+        if (id.isEmpty) continue;
+        final candidates = entriesById[id];
+        if (candidates == null || candidates.isEmpty) continue;
+        for (final e in candidates) {
+          if (e.id == correctEntry.id) continue;
+          final label = switch (mode) {
+            QuizPromptMode.jpToKor => e.kor.trim(),
+            QuizPromptMode.korToJp => e.jp.trim(),
+          };
+          if (label.isEmpty || label == correctLabel) continue;
+          if (!fromPoolLabelSource.containsKey(label)) {
+            fromPoolLabelSource[label] = e;
+            fromPoolLabels.add(label);
+          }
+        }
+      }
+      fromPoolLabels.shuffle(random);
+    }
+
+    final desiredWrongCount = n - 1;
+    final selectedWrongLabels = <String>[];
+
+    // 1단계: incorrect_pool에서 가능한 만큼 채우기.
+    for (final label in fromPoolLabels) {
+      if (selectedWrongLabels.length >= desiredWrongCount) break;
+      selectedWrongLabels.add(label);
+    }
+
+    // 2단계: 부족분은 기존 그룹 랜덤으로 보충.
+    if (selectedWrongLabels.length < desiredWrongCount) {
+      final remainingCount = desiredWrongCount - selectedWrongLabels.length;
+      final otherLabels = baseCandidates.keys
+          .where(
+            (label) =>
+                label != correctLabel && !selectedWrongLabels.contains(label),
+          )
+          .toList()
+        ..shuffle(random);
+      if (otherLabels.length < remainingCount) {
+        return null;
+      }
+      selectedWrongLabels.addAll(otherLabels.take(remainingCount));
+    }
+
+    if (selectedWrongLabels.length != desiredWrongCount) {
+      return null;
+    }
+
+    final allLabels = <String>[correctLabel, ...selectedWrongLabels]..shuffle(random);
+    final anyLabelSource = Map<String, QuizEntry>.from(baseCandidates);
+
+    final wrongPickQuotes = <String>[];
+    final choiceKorPronunciations = <String?>[];
+
+    for (final label in allLabels) {
+      final entry = pickEntryForLabel(
+        label,
+        correctLabel: correctLabel,
+        correctEntry: correctEntry,
+        poolLabelSource: fromPoolLabelSource,
+        anyLabelSource: anyLabelSource,
+      );
+      wrongPickQuotes.add(entry.jp.trim());
+      switch (mode) {
+        case QuizPromptMode.jpToKor:
+          choiceKorPronunciations.add(null);
+          break;
+        case QuizPromptMode.korToJp:
+          final p = entry.korPronunciation.trim();
+          choiceKorPronunciations.add(p.isEmpty ? null : p);
+          break;
+      }
+    }
+
+    final correctIndex = allLabels.indexOf(correctLabel);
+    if (correctIndex < 0) return null;
+
+    final promptPrimary = switch (mode) {
+      QuizPromptMode.jpToKor => correctEntry.jp.trim(),
+      QuizPromptMode.korToJp => correctEntry.kor.trim(),
+    };
+
+    final promptSecondary = switch (mode) {
+      QuizPromptMode.jpToKor => () {
+          final showHira = correctEntry.hiraganaDisplay &&
+              correctEntry.hiragana.trim().isNotEmpty;
+          return showHira ? correctEntry.hiragana.trim() : null;
+        }(),
+      QuizPromptMode.korToJp => null,
+    };
+
+    return QuizChallengeQuestion(
+      mode: mode,
+      promptPrimary: promptPrimary,
+      promptSecondary: promptSecondary,
+      choices: allLabels,
+      wrongPickQuotes: wrongPickQuotes,
+      choiceKorPronunciations: choiceKorPronunciations,
+      correctChoiceIndex: correctIndex,
+      category: correctEntry.category.trim(),
+      type: type,
+    );
+  }
+
   static QuizChallengeQuestion? _generateJpToKor(
     List<QuizEntry> entries, {
     Random? random,
@@ -89,48 +254,14 @@ class QuizGenerator {
     viableKeys.shuffle(r);
     for (final key in viableKeys) {
       final pool = groups[key]!;
-      final type = pool.first.type.trim();
-      final n = choiceCountForType(type);
-
-      final correctEntry = pool[r.nextInt(pool.length)];
-      final correctKor = correctEntry.kor.trim();
-
-      final wrongKors = pool
-          .map((e) => e.kor.trim())
-          .where((k) => k != correctKor)
-          .toSet()
-          .toList()
-        ..shuffle(r);
-
-      if (wrongKors.length < n - 1) continue;
-
-      final selectedWrong = wrongKors.take(n - 1).toList();
-      final choices = <String>[correctKor, ...selectedWrong]..shuffle(r);
-      final correctIndex = choices.indexOf(correctKor);
-      if (correctIndex < 0) continue;
-
-      final wrongPickQuotes = choices.map((kor) {
-        final entry = pool.firstWhere(
-          (e) => e.kor.trim() == kor,
-          orElse: () => correctEntry,
-        );
-        return entry.jp.trim();
-      }).toList();
-
-      final showHira = correctEntry.hiraganaDisplay &&
-          correctEntry.hiragana.trim().isNotEmpty;
-
-      return QuizChallengeQuestion(
+      final q = _buildQuestionForGroup(
+        pool: pool,
         mode: QuizPromptMode.jpToKor,
-        promptPrimary: correctEntry.jp.trim(),
-        promptSecondary: showHira ? correctEntry.hiragana.trim() : null,
-        choices: choices,
-        wrongPickQuotes: wrongPickQuotes,
-        choiceKorPronunciations: List<String?>.filled(choices.length, null),
-        correctChoiceIndex: correctIndex,
-        category: correctEntry.category.trim(),
-        type: type,
+        random: r,
       );
+      if (q != null) {
+        return q;
+      }
     }
     return null;
   }
@@ -155,54 +286,14 @@ class QuizGenerator {
     viableKeys.shuffle(r);
     for (final key in viableKeys) {
       final pool = groups[key]!;
-      final type = pool.first.type.trim();
-      final n = choiceCountForType(type);
-
-      final correctEntry = pool[r.nextInt(pool.length)];
-      final correctJp = correctEntry.jp.trim();
-
-      final wrongJps = pool
-          .map((e) => e.jp.trim())
-          .where((j) => j != correctJp)
-          .toSet()
-          .toList()
-        ..shuffle(r);
-
-      if (wrongJps.length < n - 1) continue;
-
-      final selectedWrong = wrongJps.take(n - 1).toList();
-      final choices = <String>[correctJp, ...selectedWrong]..shuffle(r);
-      final correctIndex = choices.indexOf(correctJp);
-      if (correctIndex < 0) continue;
-
-      final wrongPickQuotes = choices.map((jp) {
-        final entry = pool.firstWhere(
-          (e) => e.jp.trim() == jp,
-          orElse: () => correctEntry,
-        );
-        return entry.jp.trim();
-      }).toList();
-
-      final choiceKorPronunciations = choices.map((jp) {
-        final entry = pool.firstWhere(
-          (e) => e.jp.trim() == jp,
-          orElse: () => correctEntry,
-        );
-        final p = entry.korPronunciation.trim();
-        return p.isEmpty ? null : p;
-      }).toList();
-
-      return QuizChallengeQuestion(
+      final q = _buildQuestionForGroup(
+        pool: pool,
         mode: QuizPromptMode.korToJp,
-        promptPrimary: correctEntry.kor.trim(),
-        promptSecondary: null,
-        choices: choices,
-        wrongPickQuotes: wrongPickQuotes,
-        choiceKorPronunciations: choiceKorPronunciations,
-        correctChoiceIndex: correctIndex,
-        category: correctEntry.category.trim(),
-        type: type,
+        random: r,
       );
+      if (q != null) {
+        return q;
+      }
     }
     return null;
   }

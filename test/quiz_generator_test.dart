@@ -16,6 +16,7 @@ QuizEntry _e({
   String hiragana = '',
   String korPronunciation = '',
   bool hiraganaDisplay = false,
+  List<String>? incorrectPoolIds,
 }) {
   return QuizEntry(
     id: id,
@@ -27,6 +28,7 @@ QuizEntry _e({
     kor: kor,
     korPronunciation: korPronunciation,
     hiraganaDisplay: hiraganaDisplay,
+    incorrectPoolIds: incorrectPoolIds,
   );
 }
 
@@ -177,6 +179,76 @@ void main() {
       expect(q, isNotNull);
       expect(q!.promptSecondary, isNotNull);
       expect(q.promptSecondary!.isNotEmpty, isTrue);
+    });
+
+    test('일→한: incorrect_pool이 3개 이상이면 오답 3개를 전부 풀에서 고른다', () {
+      final entries = [
+        _e(id: '0', category: 'A', type: '단어', jp: 'w0', kor: 'k0'),
+        _e(id: '1', category: 'A', type: '단어', jp: 'w1', kor: 'k1'),
+        _e(id: '2', category: 'A', type: '단어', jp: 'w2', kor: 'k2'),
+        _e(id: '3', category: 'A', type: '단어', jp: 'w3', kor: 'k3'),
+        _e(id: '4', category: 'A', type: '단어', jp: 'w4', kor: 'k4'),
+      ];
+      final withPool = [
+        _e(
+          id: '0',
+          category: 'A',
+          type: '단어',
+          jp: 'w0',
+          kor: 'k0',
+          incorrectPoolIds: ['1', '2', '3', '4'],
+        ),
+        ...entries.skip(1),
+      ];
+
+      final q = QuizGenerator.generate(
+        withPool,
+        random: Random(0),
+        mode: QuizPromptMode.jpToKor,
+      );
+
+      expect(q, isNotNull);
+      expect(q!.choices.length, 4);
+      final correct = 'k0';
+      final wrong = q.choices.where((c) => c != correct).toSet();
+      expect(wrong.length, 3);
+      expect(wrong.difference({'k1', 'k2', 'k3', 'k4'}).isEmpty, isTrue);
+    });
+
+    test('일→한: incorrect_pool이 2개면 2개는 풀에서, 1개는 기존 규칙으로 보충한다', () {
+      final base = [
+        _e(id: '0', category: 'A', type: '단어', jp: 'w0', kor: 'k0'),
+        _e(id: '1', category: 'A', type: '단어', jp: 'w1', kor: 'k1'),
+        _e(id: '2', category: 'A', type: '단어', jp: 'w2', kor: 'k2'),
+        _e(id: '3', category: 'A', type: '단어', jp: 'w3', kor: 'k3'),
+        _e(id: '4', category: 'A', type: '단어', jp: 'w4', kor: 'k4'),
+      ];
+      final withPool = [
+        _e(
+          id: '0',
+          category: 'A',
+          type: '단어',
+          jp: 'w0',
+          kor: 'k0',
+          incorrectPoolIds: ['1', '2'],
+        ),
+        ...base.skip(1),
+      ];
+
+      final q = QuizGenerator.generate(
+        withPool,
+        random: Random(1),
+        mode: QuizPromptMode.jpToKor,
+      );
+
+      expect(q, isNotNull);
+      expect(q!.choices.length, 4);
+      final correct = 'k0';
+      final wrong = q.choices.where((c) => c != correct).toSet();
+      expect(wrong.length, 3);
+      // 최소 2개는 incorrect_pool에서 온다.
+      final fromPool = wrong.intersection({'k1', 'k2'});
+      expect(fromPool.length >= 2, isTrue);
     });
   });
 

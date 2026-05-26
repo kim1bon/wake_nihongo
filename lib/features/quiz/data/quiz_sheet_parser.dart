@@ -18,7 +18,7 @@ String _cell(List<dynamic> row, int idx) {
 }
 
 /// 첫 행 헤더: id, category, type, jp, kor 필수.
-/// 선택: level, hiragana, kor_pronunciation, hiragana_display (대소문자 무시, 공백 트림).
+/// 선택: level, hiragana, kor_pronunciation, hiragana_display, incorrect_pool (대소문자 무시, 공백 트림).
 List<QuizEntry> parseQuizSheetCsv(String raw) {
   var text = raw;
   if (text.startsWith('\ufeff')) {
@@ -43,6 +43,7 @@ List<QuizEntry> parseQuizSheetCsv(String raw) {
     korPronIdx = header.indexOf('kor pronunciation');
   }
   final hiraganaDisplayIdx = header.indexOf('hiragana_display');
+  final incorrectPoolIdx = header.indexOf('incorrect_pool');
   final korIdx = header.indexOf('kor');
   if (idIdx < 0 || catIdx < 0 || typeIdx < 0 || jpIdx < 0 || korIdx < 0) {
     throw FormatException(
@@ -61,6 +62,23 @@ List<QuizEntry> parseQuizSheetCsv(String raw) {
     final hiraganaRaw = hiraganaIdx >= 0 ? _cell(row, hiraganaIdx) : '';
     final displayRaw =
         hiraganaDisplayIdx >= 0 ? _cell(row, hiraganaDisplayIdx) : '';
+    final incorrectPoolRaw =
+        incorrectPoolIdx >= 0 ? _cell(row, incorrectPoolIdx) : '';
+
+    List<String>? incorrectPoolIds;
+    if (incorrectPoolRaw.isNotEmpty) {
+      final parts = incorrectPoolRaw.split(',');
+      final cleaned = <String>[];
+      for (final p in parts) {
+        final v = p.trim();
+        if (v.isNotEmpty) {
+          cleaned.add(v);
+        }
+      }
+      if (cleaned.isNotEmpty) {
+        incorrectPoolIds = cleaned;
+      }
+    }
 
     out.add(
       QuizEntry(
@@ -72,7 +90,9 @@ List<QuizEntry> parseQuizSheetCsv(String raw) {
         hiragana: hiraganaRaw,
         kor: _cell(row, korIdx),
         korPronunciation: korPronIdx >= 0 ? _cell(row, korPronIdx) : '',
-        hiraganaDisplay: displayRaw.isEmpty ? false : parseSheetBool(displayRaw),
+        hiraganaDisplay:
+            displayRaw.isEmpty ? false : parseSheetBool(displayRaw),
+        incorrectPoolIds: incorrectPoolIds,
       ),
     );
   }
