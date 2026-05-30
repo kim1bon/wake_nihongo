@@ -52,9 +52,9 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
       _time = const TimeOfDay(hour: 7, minute: 0);
       _weekdays = {};
       _soundId = AlarmSoundIds.defaultId;
-      _rescheduleEnabled = false;
+      _rescheduleEnabled = true;
       _rescheduleDelayMinutes = 5;
-      _rescheduleMaxCount = 3;
+      _rescheduleMaxCount = 5;
     }
   }
 
@@ -539,8 +539,9 @@ class _JapaneseDialTimePickerDialogState
     final hourText = _hour12.toString().padLeft(2, '0');
     final minuteText = _minute.toString().padLeft(2, '0');
     if (_hourController.text != hourText) _hourController.text = hourText;
-    if (_minuteController.text != minuteText)
+    if (_minuteController.text != minuteText) {
       _minuteController.text = minuteText;
+    }
   }
 
   void _onHourTextChanged(String raw) {

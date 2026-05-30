@@ -24,9 +24,9 @@ class FakeAlarmRepository implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     final alarm = Alarm(
@@ -74,9 +74,9 @@ class FakeAlarmRepository implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final i = _alarms.indexWhere((a) => a.id == id);
     if (i < 0) {
@@ -114,4 +114,7 @@ class FakeAlarmRepository implements AlarmRepository {
     required String soundId,
     required int delayMinutes,
   }) async {}
+
+  @override
+  Future<void> refreshScheduleAfterDismiss(int alarmId) async {}
 }

@@ -35,7 +35,7 @@ final quizEntriesProvider = FutureProvider<List<QuizEntry>>((ref) async {
 });
 
 /// 설정의 category·카테고리별 level 에 맞춘 출제용 목록.
-/// 출제 형식: 시트 `type`이 `sentence`면 2지선다, 그 외는 4지선다(대소문자 무시).
+/// 출제 형식: 시트 `type`이 `sentence`면 3지선다, 그 외는 4지선다(대소문자 무시).
 final quizFilteredEntriesProvider = FutureProvider<List<QuizEntry>>((ref) async {
   final entries = await ref.watch(quizEntriesProvider.future);
   var levelsByCategory = await ref.watch(quizAlarmCategoryLevelsProvider.future);

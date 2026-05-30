@@ -28,9 +28,29 @@ class AlarmNativeAndroid {
     await _ch.invokeMethod<void>('syncAlarms', jsonEncode(list));
   }
 
-  static Future<void> stopRinging() async {
+  static Future<void> stopRinging({int alarmId = -1}) async {
     if (!Platform.isAndroid) return;
-    await _ch.invokeMethod<void>('stopRinging');
+    await _ch.invokeMethod<void>('stopRinging', {'alarmId': alarmId});
+  }
+
+  static Future<bool> isRinging() async {
+    if (!Platform.isAndroid) return false;
+    final v = await _ch.invokeMethod<bool>('isRinging');
+    return v ?? false;
+  }
+
+  /// 네이티브 서비스가 꺼진 pending 복원 시 재생을 다시 시작합니다.
+  static Future<void> ensureRinging({
+    required int alarmId,
+    required String soundId,
+  }) async {
+    if (!Platform.isAndroid) return;
+    final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
+    await _ch.invokeMethod<void>('ensureRinging', {
+      'alarmId': alarmId,
+      'soundId': sid,
+      'raw': AlarmSoundIds.androidRawName(sid),
+    });
   }
 
   /// flutter_local_notifications의 손상된 예약 캐시를 Android 네이티브에서 정리합니다.

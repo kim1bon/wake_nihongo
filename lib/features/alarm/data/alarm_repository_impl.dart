@@ -30,9 +30,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     await _ensureIosNotificationPermissions();
     final resolvedSoundId = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
@@ -79,9 +79,9 @@ class AlarmRepositoryImpl implements AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     await _ensureIosNotificationPermissions();
     final existing = await _dataSource.getById(id);

@@ -36,7 +36,7 @@ class QuizChallengeBody extends StatelessWidget {
   final int? wrongPickIndex;
   final int? correctHighlightIndex;
 
-  /// 모드·2/4지에 맞는 안내 문구 (질문과 같은 언어).
+  /// 모드·3/4지에 맞는 안내 문구 (질문과 같은 언어).
   String _promptInstruction(QuizChallengeQuestion q) {
     final isSentence = q.type.trim().toLowerCase() == 'sentence';
     return switch (q.mode) {
@@ -154,7 +154,7 @@ class QuizChallengeBody extends StatelessWidget {
     return '「$quoted」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
   }
 
-  /// 2지선다(전체 너비) 기준 답안 버튼 한 칸의 세로 높이.
+  /// 단일열 선택지(전체 너비) 기준 답안 버튼 한 칸의 세로 높이.
   double _alarmChoiceButtonHeightAtFullWidth(
     BuildContext context,
     ThemeData theme,
@@ -319,7 +319,7 @@ class QuizChallengeBody extends StatelessWidget {
                   1.3;
 
           if (useAlarmStyleLayout) {
-            /// 4지선다도 2지선다와 동일한 텍스트·높이 기준(compact)을 씁니다.
+            /// 4지선다도 단일열 선택지와 동일한 텍스트·높이 기준(compact)을 씁니다.
             const alarmChoiceCompact = true;
 
             Widget buildChoiceButton(

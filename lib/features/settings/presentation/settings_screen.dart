@@ -147,6 +147,10 @@ Future<void> _toggleLevelForCategory({
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  bool _showAccountCards() {
+    return false;
+  }
+
   String _providerLabel(User user) {
     final provider = user.providerData.isNotEmpty
         ? user.providerData.first.providerId
@@ -378,6 +382,8 @@ class SettingsScreen extends ConsumerWidget {
     final localQuizVersionAsync = ref.watch(localQuizVersionProvider);
     final remoteQuizVersionAsync = ref.watch(remoteQuizVersionProvider);
     final authStateAsync = ref.watch(authStateChangesProvider);
+    final showAccountCards = _showAccountCards();
+    final isAndroid = theme.platform == TargetPlatform.android;
 
     return Scaffold(
       appBar: AppBar(
@@ -393,59 +399,61 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.symmetric(vertical: context.h(8)),
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              context.w(16),
-              context.h(8),
-              context.w(16),
-              context.h(4),
-            ),
-            child: Text(
-              '계정',
-              style: sectionTitleStyle,
-            ),
-          ),
-          Card(
-            margin: EdgeInsets.symmetric(
-              horizontal: context.w(16),
-              vertical: context.h(4),
-            ),
-            child: authStateAsync.when(
-              loading: () => const ListTile(
-                leading: Icon(Icons.person_outline),
-                title: Text('로그인 상태 확인 중...'),
+          if (showAccountCards) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                context.w(16),
+                context.h(8),
+                context.w(16),
+                context.h(4),
               ),
-              error: (e, _) => ListTile(
-                leading: const Icon(Icons.error_outline),
-                title: const Text('로그인 상태를 불러오지 못했습니다.'),
-                subtitle: Text('$e'),
+              child: Text(
+                '계정',
+                style: sectionTitleStyle,
               ),
-              data: (user) {
-                final needLogin = user == null || user.isAnonymous;
-                if (needLogin) {
+            ),
+            Card(
+              margin: EdgeInsets.symmetric(
+                horizontal: context.w(16),
+                vertical: context.h(4),
+              ),
+              child: authStateAsync.when(
+                loading: () => const ListTile(
+                  leading: Icon(Icons.person_outline),
+                  title: Text('로그인 상태 확인 중...'),
+                ),
+                error: (e, _) => ListTile(
+                  leading: const Icon(Icons.error_outline),
+                  title: const Text('로그인 상태를 불러오지 못했습니다.'),
+                  subtitle: Text('$e'),
+                ),
+                data: (user) {
+                  final needLogin = user == null || user.isAnonymous;
+                  if (needLogin) {
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: const Text('로그인'),
+                      subtitle: const Text('로그인이 필요해요'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _handlePlatformLogin(context, ref),
+                    );
+                  }
+
+                  final providerLabel = _providerLabel(user);
+                  final accountName = _accountDisplayName(user);
+
                   return ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: const Text('로그인'),
-                    subtitle: const Text('로그인이 필요해요'),
+                    leading: const Icon(Icons.verified_user_outlined),
+                    title: Text(accountName),
+                    subtitle: Text(providerLabel),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _handlePlatformLogin(context, ref),
+                    onTap: () => _showAccountDetails(context, ref, user),
                   );
-                }
-
-                final providerLabel = _providerLabel(user);
-                final accountName = _accountDisplayName(user);
-
-                return ListTile(
-                  leading: const Icon(Icons.verified_user_outlined),
-                  title: Text(accountName),
-                  subtitle: Text(providerLabel),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showAccountDetails(context, ref, user),
-                );
-              },
+                },
+              ),
             ),
-          ),
-          SizedBox(height: context.h(16)),
+            SizedBox(height: context.h(16)),
+          ],
           Padding(
             padding: EdgeInsets.fromLTRB(
               context.w(16),
@@ -484,9 +492,11 @@ class SettingsScreen extends ConsumerWidget {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.info_outline),
-                  title: const Text('iOS 알림 안내'),
-                  subtitle: const Text(
-                    '무음 스위치/집중 모드에서는 소리가 제한될 수 있습니다.',
+                  title: Text(isAndroid ? 'Android 알림 안내' : 'iOS 알림 안내'),
+                  subtitle: Text(
+                    isAndroid
+                        ? '방해 금지/배터리 최적화 설정에서 알림이 제한될 수 있습니다.'
+                        : '무음 스위치/집중 모드에서는 소리가 제한될 수 있습니다.',
                   ),
                   onTap: () {
                     showDialog<void>(
@@ -532,8 +542,8 @@ class SettingsScreen extends ConsumerWidget {
                                   color: AppPalette.green.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(dialogContext.r(10)),
                                 ),
-                                child: const Icon(
-                                  Icons.phone_iphone,
+                                child: Icon(
+                                  isAndroid ? Icons.phone_android : Icons.phone_iphone,
                                   size: 20,
                                   color: AppPalette.green,
                                 ),
@@ -541,7 +551,7 @@ class SettingsScreen extends ConsumerWidget {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'iOS 알림 설정 가이드',
+                                  isAndroid ? 'Android 알림 설정 가이드' : 'iOS 알림 설정 가이드',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     color: AppPalette.navy,
@@ -570,16 +580,25 @@ class SettingsScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 child: Text(
-                                  '아래 설정을 확인해 주세요.\n\n'
-                                  '1) 설정 > 알림 > 일어나\n'
-                                  ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
-                                  ' - 시간 민감 알림(Time Sensitive) ON\n\n'
-                                  '2) 설정 > 집중 모드(Focus)\n'
-                                  ' - 일어나 알림 허용\n\n'
-                                  '3) 설정 > 사운드 및 햅틱\n'
-                                  ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
-                                  '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 '
-                                  '100% 강제할 수는 없습니다.',
+                                  isAndroid
+                                      ? '아래 설정을 확인해 주세요.\n\n'
+                                            '1) 설정 > 알림 > 일어나\n'
+                                            ' - 알림 허용 ON\n\n'
+                                            '2) 설정 > 배터리 > 배터리 최적화\n'
+                                            ' - 일어나 앱을 제한 없음/예외로 설정\n\n'
+                                            '3) 설정 > 방해 금지(Do Not Disturb)\n'
+                                            ' - 알람 또는 일어나 앱 알림 허용\n\n'
+                                            '참고: 제조사별로 메뉴 이름이 다를 수 있습니다.'
+                                      : '아래 설정을 확인해 주세요.\n\n'
+                                            '1) 설정 > 알림 > 일어나\n'
+                                            ' - 알림 허용, 잠금화면, 배너, 사운드 ON\n'
+                                            ' - 시간 민감 알림(Time Sensitive) ON\n\n'
+                                            '2) 설정 > 집중 모드(Focus)\n'
+                                            ' - 일어나 알림 허용\n\n'
+                                            '3) 설정 > 사운드 및 햅틱\n'
+                                            ' - 무음 모드 햅틱 재생 ON (진동 사용 시)\n\n'
+                                            '참고: iOS 정책상 무음 스위치 ON 상태에서 소리를 '
+                                            '100% 강제할 수는 없습니다.',
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     height: 1.45,
                                     color: AppPalette.navy,
@@ -632,8 +651,8 @@ class SettingsScreen extends ConsumerWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: context.w(16)),
             child: Text(
-              '알람을 끌 때 출제되는 문제 범위입니다. 카테고리를 펼치면 해당 묶음의 레벨만 골라 출제할 수 있습니다. '
-              '시트의「category」「level」열과 같으며, type이 sentence면 2지·그 외 4지입니다.',
+              '카테고리를 통해 알람 해제 퀴즈의 출제 범위를 설정할 수 있습니다. '
+              '또한 카테고리별 레벨을 선택해 문제를 출제할 수 있습니다.',
               style: panelDescStyle,
             ),
           ),

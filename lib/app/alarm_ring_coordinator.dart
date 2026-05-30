@@ -13,13 +13,18 @@ import '../features/alarm/data/alarm_reschedule_session_store.dart';
 import '../features/alarm/domain/alarm_payload_kind.dart';
 import '../features/alarm/presentation/alarm_ring_screen.dart';
 
-/// 알람 알림·포그라운드 서비스로 앱이 열리면 네이티브 루프를 멈추고 인앱 반복 + 전체 화면 해제 UI를 띄웁니다.
+/// Android: 네이티브 포그라운드 서비스가 소리를 담당하고, 앱은 퀴즈 UI만 띄웁니다.
+/// iOS: 인앱 반복 재생 + 전체 화면 해제 UI.
 class AlarmRingCoordinator {
   AlarmRingCoordinator._();
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static bool _handling = false;
+  static int? _activeAlarmId;
+
+  /// 한 번의 알람 체인에서 최대 울림(5분) 횟수.
+  static const int defaultMaxCycles = 5;
 
   static Future<void> handleNotificationResponse(NotificationResponse response) async {
     final parsed = _parsePayload(response.payload);
@@ -52,17 +57,16 @@ class AlarmRingCoordinator {
     if (alarmId < 0) return;
     if (isReschedule) return;
     final repo = AlarmServices.alarmRepository;
-    if (repo == null) return;
-    await repo.cancelPendingReschedule(alarmId);
-    final alarm = await repo.getAlarm(alarmId);
-    if (alarm == null || !alarm.rescheduleEnabled) {
-      await AlarmRescheduleSessionStore.clearForAlarm(alarmId);
-      return;
+    if (repo != null) {
+      await repo.cancelPendingReschedule(alarmId);
     }
-    await AlarmRescheduleSessionStore.startSession(
-      alarmId: alarmId,
-      remainingUses: alarm.rescheduleMaxCount,
-    );
+    // Android는 네이티브 [AlarmRingSessionManager]가 세션을 시작합니다.
+    if (!Platform.isAndroid) {
+      await AlarmRescheduleSessionStore.startSession(
+        alarmId: alarmId,
+        remainingUses: defaultMaxCycles,
+      );
+    }
   }
 
   static Future<void> handleAlarmTrigger({
@@ -72,20 +76,28 @@ class AlarmRingCoordinator {
   }) async {
     final nav = navigatorKey.currentState;
     if (nav == null) return;
-    if (_handling) return;
+
+    if (_handling && _activeAlarmId == alarmId) {
+      await _ensureAndroidRinging(alarmId: alarmId, soundId: soundId);
+      return;
+    }
+
     _handling = true;
+    _activeAlarmId = alarmId;
     try {
       await _prepareRescheduleSession(alarmId: alarmId, isReschedule: isReschedule);
-      if (Platform.isAndroid) {
-        await AlarmNativeAndroid.stopRinging();
-      }
+
       await AlarmPendingStateStore.save(
         alarmId: alarmId,
         soundId: soundId,
         triggeredAtMs: DateTime.now().millisecondsSinceEpoch,
         isReschedule: isReschedule,
       );
-      await AlarmServices.ringtonePlayer.startLoop(soundId);
+
+      await _ensureAndroidRinging(alarmId: alarmId, soundId: soundId);
+      if (!Platform.isAndroid) {
+        await AlarmServices.ringtonePlayer.startLoop(soundId);
+      }
 
       await nav.push<void>(
         MaterialPageRoute<void>(
@@ -93,14 +105,16 @@ class AlarmRingCoordinator {
           builder: (context) => AlarmRingScreen(
             alarmId: alarmId,
             onDismiss: () async {
-              await AlarmServices.ringtonePlayer.stop();
+              if (!Platform.isAndroid) {
+                await AlarmServices.ringtonePlayer.stop();
+              }
               await AlarmPendingStateStore.clear();
               if (alarmId >= 0) {
                 await AlarmRescheduleSessionStore.clearForAlarm(alarmId);
                 await AlarmServices.alarmRepository?.refreshScheduleAfterDismiss(alarmId);
               }
               if (Platform.isAndroid) {
-                await AlarmNativeAndroid.stopRinging();
+                await AlarmNativeAndroid.stopRinging(alarmId: alarmId);
               }
             },
           ),
@@ -108,6 +122,23 @@ class AlarmRingCoordinator {
       );
     } finally {
       _handling = false;
+      if (_activeAlarmId == alarmId) {
+        _activeAlarmId = null;
+      }
+    }
+  }
+
+  static Future<void> _ensureAndroidRinging({
+    required int alarmId,
+    required String soundId,
+  }) async {
+    if (!Platform.isAndroid || alarmId < 0) return;
+    final ringing = await AlarmNativeAndroid.isRinging();
+    if (!ringing) {
+      await AlarmNativeAndroid.ensureRinging(
+        alarmId: alarmId,
+        soundId: soundId,
+      );
     }
   }
 

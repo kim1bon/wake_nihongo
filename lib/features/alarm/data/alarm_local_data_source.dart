@@ -97,9 +97,9 @@ CREATE TABLE alarms (
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final sorted = weekdays.toList()..sort();
     final delay = rescheduleDelayMinutes.clamp(1, 15);
@@ -134,9 +134,9 @@ CREATE TABLE alarms (
     required Set<int> weekdays,
     required bool enabled,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final sorted = weekdays.toList()..sort();
     final delay = rescheduleDelayMinutes.clamp(1, 15);

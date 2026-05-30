@@ -14,16 +14,19 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         val minute = intent.getIntExtra(EXTRA_MINUTE, 0)
         val raw = intent.getStringExtra(EXTRA_RAW) ?: "basic"
         val soundId = rawToFlutterSoundId(raw)
+        val appCtx = context.applicationContext
 
         Log.d(TAG, "alarm fire id=$alarmId wd=$weekday raw=$raw")
 
-        AlarmRingForegroundService.startRinging(
-            context.applicationContext,
-            alarmId,
-            soundId,
-            raw,
-        )
-        val openQuizIntent = Intent(context.applicationContext, MainActivity::class.java).apply {
+        if (weekday == AlarmRingSessionManager.RESCHEDULE_WEEKDAY) {
+            AlarmRingSessionManager.onRescheduleAlarmFired(appCtx, alarmId, soundId)
+        } else {
+            AlarmRingSessionManager.onWeeklyAlarmFired(appCtx, alarmId, soundId)
+        }
+
+        AlarmRingForegroundService.startRinging(appCtx, alarmId, soundId, raw)
+
+        val openQuizIntent = Intent(appCtx, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -31,12 +34,13 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
             putExtra(MainActivity.EXTRA_SOUND_ID, soundId)
             putExtra(MainActivity.EXTRA_ALARM_ID, alarmId)
         }
-        context.applicationContext.startActivity(openQuizIntent)
+        appCtx.startActivity(openQuizIntent)
 
         // weekday == 0: 요일 미선택 1회 알람 — 다음 주 재예약 없음.
-        if (weekday != 0) {
+        // weekday == 8: 재알림 슬롯 — 주간 재예약 없음.
+        if (weekday != 0 && weekday != AlarmRingSessionManager.RESCHEDULE_WEEKDAY) {
             AndroidAlarmScheduler.scheduleNextWeekSameSlot(
-                context.applicationContext,
+                appCtx,
                 alarmId,
                 weekday,
                 hour,
@@ -53,7 +57,6 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         "japan_signal" -> "japan_signal"
         "alarm_clock" -> "alarm_clock"
         "ghibli_style" -> "ghibli_style"
-        // Backward compatibility for existing pending intents
         "alram_01" -> "basic"
         "alram_02" -> "chicken"
         "alram_03" -> "clear_horizon"

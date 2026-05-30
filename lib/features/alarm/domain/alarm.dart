@@ -7,9 +7,9 @@ class Alarm {
     required this.weekdays,
     required this.enabled,
     required this.soundId,
-    this.rescheduleEnabled = false,
+    this.rescheduleEnabled = true,
     this.rescheduleDelayMinutes = 5,
-    this.rescheduleMaxCount = 3,
+    this.rescheduleMaxCount = 5,
   });
 
   final int id;

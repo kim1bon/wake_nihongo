@@ -24,7 +24,28 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "stopRinging" -> {
+                    val alarmId = call.argument<Int>("alarmId") ?: -1
                     AlarmRingForegroundService.stop(applicationContext)
+                    if (alarmId >= 0) {
+                        AlarmRingSessionManager.onQuizDismissed(applicationContext, alarmId)
+                    }
+                    result.success(null)
+                }
+                "isRinging" -> {
+                    result.success(AlarmRingForegroundService.isRinging)
+                }
+                "ensureRinging" -> {
+                    val alarmId = call.argument<Int>("alarmId") ?: -1
+                    val soundId = call.argument<String>("soundId") ?: "basic"
+                    val raw = call.argument<String>("raw") ?: "basic"
+                    if (!AlarmRingForegroundService.isRinging && alarmId >= 0) {
+                        AlarmRingForegroundService.startRinging(
+                            applicationContext,
+                            alarmId,
+                            soundId,
+                            raw,
+                        )
+                    }
                     result.success(null)
                 }
                 "takePendingAlarmLaunch" -> {

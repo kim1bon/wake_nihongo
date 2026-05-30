@@ -122,7 +122,7 @@ class _QuizPracticeLoadedState extends State<_QuizPracticeLoaded> {
                     '같은 카테고리·같은 타입 안에서 서로 다른 보기가 '
                     '충분해야 합니다.\n'
                     '(한→일: 서로 다른 일본어, 일→한: 서로 다른 한국어)\n'
-                    'sentence는 2지, 그 외는 4지입니다.',
+                    'sentence는 3지, 그 외는 4지입니다.',
                     textAlign: TextAlign.center,
                   ),
                 ),

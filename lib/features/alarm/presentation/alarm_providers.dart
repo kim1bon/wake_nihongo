@@ -32,9 +32,9 @@ class AlarmsNotifier extends AsyncNotifier<List<Alarm>> {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     await ref.read(alarmRepositoryProvider).createAlarm(
@@ -65,9 +65,9 @@ class AlarmsNotifier extends AsyncNotifier<List<Alarm>> {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   }) async {
     final sid = AlarmSoundIds.isValid(soundId) ? soundId : AlarmSoundIds.defaultId;
     await ref.read(alarmRepositoryProvider).updateAlarm(

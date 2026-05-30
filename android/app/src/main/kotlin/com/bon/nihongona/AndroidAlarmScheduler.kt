@@ -85,6 +85,41 @@ object AndroidAlarmScheduler {
         Log.d(TAG, "rescheduled after boot: ${newKeys.size} slots")
     }
 
+    /** 퀴즈 미해제 울림 종료 후 [delayMillis] 뒤 재울림. */
+    fun scheduleRescheduleRing(
+        context: Context,
+        alarmId: Int,
+        rawSound: String,
+        delayMillis: Long,
+    ) {
+        val whenMs = System.currentTimeMillis() + delayMillis
+        scheduleAlarmAtMillis(
+            context,
+            alarmId,
+            AlarmRingSessionManager.RESCHEDULE_WEEKDAY,
+            0,
+            0,
+            rawSound,
+            whenMs,
+        )
+        Log.d(TAG, "reschedule ring id=$alarmId in ${delayMillis}ms")
+    }
+
+    fun cancelRescheduleRing(context: Context, alarmId: Int) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val json = prefs.getString(KEY_JSON, null).orEmpty()
+        val arr = if (json.isNotBlank()) JSONArray(json) else JSONArray()
+        val raw = findAlarmMeta(arr, alarmId)?.third ?: "basic"
+        cancelOneExact(
+            context,
+            alarmId,
+            AlarmRingSessionManager.RESCHEDULE_WEEKDAY,
+            0,
+            0,
+            raw,
+        )
+    }
+
     /** After an alarm fires, schedule the same weekday/time one week later. */
     fun scheduleNextWeekSameSlot(
         context: Context,

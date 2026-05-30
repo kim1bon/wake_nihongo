@@ -142,10 +142,11 @@ void main() {
       expect(filtered.where((e) => e.category == 'D').single.level, '1');
     });
 
-    test('일→한 sentence 타입은 2지선다', () {
+    test('일→한 sentence 타입은 3지선다', () {
       final entries = [
         _e(id: '0', category: 'A', type: 'sentence', jp: 'a', kor: 'x'),
         _e(id: '1', category: 'A', type: 'sentence', jp: 'b', kor: 'y'),
+        _e(id: '2', category: 'A', type: 'sentence', jp: 'c', kor: 'z'),
       ];
       final q = QuizGenerator.generate(
         entries,
@@ -153,8 +154,8 @@ void main() {
         mode: QuizPromptMode.jpToKor,
       );
       expect(q, isNotNull);
-      expect(q!.choices.length, 2);
-      expect(q.wrongPickQuotes.length, 2);
+      expect(q!.choices.length, 3);
+      expect(q.wrongPickQuotes.length, 3);
       expect(q.type.toLowerCase(), 'sentence');
     });
 

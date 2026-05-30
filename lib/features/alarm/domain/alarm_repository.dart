@@ -10,9 +10,9 @@ abstract class AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   });
 
   Future<void> deleteAlarm(int id);
@@ -23,9 +23,9 @@ abstract class AlarmRepository {
     required int minute,
     required Set<int> weekdays,
     required String soundId,
-    bool rescheduleEnabled = false,
+    bool rescheduleEnabled = true,
     int rescheduleDelayMinutes = 5,
-    int rescheduleMaxCount = 3,
+    int rescheduleMaxCount = 5,
   });
 
   /// 「다시 알림」로 예약된 일회 알림 취소.

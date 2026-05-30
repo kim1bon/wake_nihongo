@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/alarm_pending_state_store.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/ui/responsive.dart';
 import 'alarm_providers.dart';
@@ -45,6 +47,7 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   bool _wrong = false;
   int? _wrongPickIndex;
   int? _correctPickIndex;
+  Timer? _androidAutoCloseWatcher;
 
   bool get _mustSolveQuiz =>
       !_loadingQuiz && _loadError == null && _question != null;
@@ -65,9 +68,32 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isAndroid) {
+      _androidAutoCloseWatcher = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => unawaited(_checkAndroidAutoStopped()),
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadQuiz();
     });
+  }
+
+  @override
+  void dispose() {
+    _androidAutoCloseWatcher?.cancel();
+    super.dispose();
+  }
+
+  /// 5회 재알림 소진 등으로 네이티브가 pending을 지우면 화면을 닫습니다.
+  Future<void> _checkAndroidAutoStopped() async {
+    if (!mounted || widget.alarmId < 0) return;
+    final pending = await AlarmPendingStateStore.read();
+    if (pending != null && pending.alarmId == widget.alarmId) return;
+    if (!mounted) return;
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _loadQuiz() async {
@@ -266,41 +292,25 @@ class _AlarmRingScreenState extends ConsumerState<AlarmRingScreen> {
                       ),
                       SizedBox(height: context.h(8)),
                     ],
-                    SizedBox(height: context.h(16)),
-                    FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppPalette.beigeSoft,
-                        foregroundColor: AppPalette.navy,
-                        disabledBackgroundColor:
-                            AppPalette.beigeSoft.withValues(alpha: 0.55),
-                        disabledForegroundColor:
-                            AppPalette.navy.withValues(alpha: 0.45),
-                        padding: EdgeInsets.symmetric(vertical: context.h(18)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(context.r(14)),
-                        ),
-                        side: BorderSide(
-                          color: context.wnColors.alarmPrimaryButtonBorder,
-                        ),
-                      ),
-                      onPressed: _canDismiss ? _onDismissPressed : null,
-                      child: Text(
-                        _canDismiss ? '알람 끄기' : '정답 후 알람 끄기',
-                      ),
-                    ),
-                    if (!_canDismiss && _mustSolveQuiz)
-                      Padding(
-                        padding: EdgeInsets.only(top: context.h(8)),
-                        child: Text(
-                          _requiredQuestions > 1
-                              ? '$_requiredQuestions개 모두 맞히면 버튼이 활성화됩니다.'
-                              : '정답을 선택하면 버튼이 활성화됩니다.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.86),
+                    // 퀴즈 풀이 중에는 하단 버튼 없음 — 정답 후 [AlarmQuizSuccessScreen]에서만 알람 끄기.
+                    if (_canDismiss && !_mustSolveQuiz) ...[
+                      SizedBox(height: context.h(16)),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppPalette.beigeSoft,
+                          foregroundColor: AppPalette.navy,
+                          padding: EdgeInsets.symmetric(vertical: context.h(18)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(context.r(14)),
                           ),
-                          textAlign: TextAlign.center,
+                          side: BorderSide(
+                            color: context.wnColors.alarmPrimaryButtonBorder,
+                          ),
                         ),
+                        onPressed: _onDismissPressed,
+                        child: const Text('알람 끄기'),
                       ),
+                    ],
                   ],
                 ),
               ),

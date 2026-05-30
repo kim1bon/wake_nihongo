@@ -11,7 +11,9 @@ import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
@@ -26,7 +28,9 @@ class AlarmRingForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            cancelRingTimeout()
             stopPlayback()
+            isRinging = false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
             } else {
@@ -41,21 +45,29 @@ class AlarmRingForegroundService : Service() {
         val alarmId = intent?.getIntExtra(EXTRA_ALARM_ID, -1) ?: -1
         val soundFlutter = intent?.getStringExtra(EXTRA_SOUND_ID) ?: "basic"
 
-        startForegroundWithNotif(alarmId, soundFlutter, raw)
+        activeAlarmId = alarmId
+        activeSoundId = soundFlutter
+        activeRaw = raw
+        isRinging = true
+
+        startForegroundWithNotif(alarmId, soundFlutter)
         startPlayer(raw)
         acquireWakeLock()
+        scheduleRingTimeout(alarmId, soundFlutter, raw)
 
         return START_STICKY
     }
 
     private var player: MediaPlayer? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var ringTimeoutRunnable: Runnable? = null
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val ch = NotificationChannel(
                 CHANNEL_ID,
-                "?ŒëžŒ ?¬ìƒ",
+                getString(R.string.alarm_notification_channel),
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
                 setSound(null, null)
@@ -66,18 +78,10 @@ class AlarmRingForegroundService : Service() {
         }
     }
 
-    private fun startForegroundWithNotif(alarmId: Int, soundId: String, raw: String) {
+    private fun startForegroundWithNotif(alarmId: Int, soundId: String) {
         val immutable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_IMMUTABLE
         } else 0
-
-        val stopIntent = Intent(this, AlarmStopReceiver::class.java)
-        val stopPi = PendingIntent.getBroadcast(
-            this,
-            1,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or immutable,
-        )
 
         val open = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -93,8 +97,8 @@ class AlarmRingForegroundService : Service() {
         )
 
         val notif = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("?¼ì–´???ŒëžŒ")
-            .setContentText("?ŒëžŒ???¸ë¦¬??ì¤‘ìž…?ˆë‹¤. ??•˜???±ì—???„ì„¸??")
+            .setContentTitle(getString(R.string.alarm_notification_title))
+            .setContentText(getString(R.string.alarm_notification_text))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -102,7 +106,6 @@ class AlarmRingForegroundService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openPi)
             .setFullScreenIntent(openPi, true)
-            .addAction(0, "?ŒëžŒ ?„ê¸°", stopPi)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -116,8 +119,35 @@ class AlarmRingForegroundService : Service() {
         }
     }
 
-    private fun startPlayer(raw: String) {
+    private fun scheduleRingTimeout(alarmId: Int, soundId: String, raw: String) {
+        cancelRingTimeout()
+        ringTimeoutRunnable = Runnable {
+            onRingDurationElapsed(alarmId, soundId, raw)
+        }
+        handler.postDelayed(ringTimeoutRunnable!!, AlarmRingSessionManager.RING_DURATION_MS)
+    }
+
+    private fun cancelRingTimeout() {
+        ringTimeoutRunnable?.let { handler.removeCallbacks(it) }
+        ringTimeoutRunnable = null
+    }
+
+    private fun onRingDurationElapsed(alarmId: Int, soundId: String, raw: String) {
+        cancelRingTimeout()
         stopPlayback()
+        isRinging = false
+        AlarmRingSessionManager.onRingCycleEnded(applicationContext, alarmId, soundId, raw)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        stopSelf()
+    }
+
+    private fun startPlayer(raw: String) {
+        stopPlayback(keepWakeLock = true)
         val resId = resources.getIdentifier(raw, "raw", packageName)
         if (resId == 0) return
         val afd = resources.openRawResourceFd(resId) ?: return
@@ -148,7 +178,7 @@ class AlarmRingForegroundService : Service() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "wake_nihongo:AlarmRing")
         wakeLock?.setReferenceCounted(false)
-        wakeLock?.acquire(3 * 60 * 60 * 1000L)
+        wakeLock?.acquire(AlarmRingSessionManager.RING_DURATION_MS + 60_000L)
     }
 
     private fun releaseWakeLock() {
@@ -156,27 +186,47 @@ class AlarmRingForegroundService : Service() {
         wakeLock = null
     }
 
-    private fun stopPlayback() {
+    private fun stopPlayback(keepWakeLock: Boolean = false) {
         try {
             player?.stop()
         } catch (_: Exception) { }
         player?.release()
         player = null
-        releaseWakeLock()
+        if (!keepWakeLock) {
+            releaseWakeLock()
+        }
     }
 
     override fun onDestroy() {
+        cancelRingTimeout()
         stopPlayback()
+        isRinging = false
         super.onDestroy()
     }
 
     companion object {
-        private const val CHANNEL_ID = "wake_nihongo_alarm_loop"
+        private const val CHANNEL_ID = "wake_nihongo_alarm_loop_v2"
         private const val NOTIF_ID = 42001
         private const val ACTION_STOP = "com.bon.nihongona.STOP_ALARM_RING"
         const val EXTRA_RAW = "raw_sound"
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_SOUND_ID = "sound_id_flutter"
+
+        @Volatile
+        var isRinging: Boolean = false
+            private set
+
+        @Volatile
+        var activeAlarmId: Int = -1
+            private set
+
+        @Volatile
+        var activeSoundId: String = "basic"
+            private set
+
+        @Volatile
+        var activeRaw: String = "basic"
+            private set
 
         fun startRinging(ctx: Context, alarmId: Int, soundIdFlutter: String, raw: String) {
             val i = Intent(ctx, AlarmRingForegroundService::class.java).apply {

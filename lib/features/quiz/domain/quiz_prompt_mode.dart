@@ -3,14 +3,14 @@ enum QuizPromptMode {
   /// 한국어 제시 → 일본어 선택.
   korToJp,
 
-  /// 일본어 제시 → 한국어 선택 (기본값).
+  /// 일본어 제시 → 한국어 선택.
   jpToKor;
 
   static QuizPromptMode fromStorage(String? value) {
     if (value == korToJp.storageValue) {
       return QuizPromptMode.korToJp;
     }
-    return QuizPromptMode.jpToKor;
+    return QuizPromptMode.korToJp;
   }
 
   String get storageValue => switch (this) {

@@ -4,7 +4,7 @@ import 'quiz_challenge_question.dart';
 import 'quiz_entry.dart';
 import 'quiz_prompt_mode.dart';
 
-/// `type`이 `sentence`면 2지선다, 그 외는 4지선다.
+/// `type`이 `sentence`면 3지선다, 그 외는 4지선다.
 /// 오답 보기는 같은 `category` + 같은 `type` 안에서만 채웁니다.
 /// - 일→한: 서로 다른 [QuizEntry.kor] 가 충분해야 함.
 /// - 한→일: 서로 다른 [QuizEntry.jp] 가 충분해야 함.
@@ -16,7 +16,7 @@ class QuizGenerator {
   /// 대소문자 무시.
   static int choiceCountForType(String type) {
     final t = type.trim().toLowerCase();
-    return t == sentenceType ? 2 : 4;
+    return t == sentenceType ? 3 : 4;
   }
 
   /// 카테고리별 `level` 허용 집합. 해당 카테고리 키가 없거나 값이 비어 있으면 그 카테고리는 레벨 제한 없음.
@@ -49,7 +49,7 @@ class QuizGenerator {
   static QuizChallengeQuestion? generate(
     List<QuizEntry> entries, {
     Random? random,
-    QuizPromptMode mode = QuizPromptMode.jpToKor,
+    QuizPromptMode mode = QuizPromptMode.korToJp,
   }) {
     return switch (mode) {
       QuizPromptMode.jpToKor => _generateJpToKor(entries, random: random),
