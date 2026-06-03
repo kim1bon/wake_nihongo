@@ -9,11 +9,13 @@ class QuizChallengeQuestion {
     required this.choices,
     required this.wrongPickQuotes,
     required this.choiceKorPronunciations,
+    required this.choiceKorMeanings,
     required this.correctChoiceIndex,
     required this.category,
     required this.type,
   })  : assert(choices.length == wrongPickQuotes.length),
         assert(choices.length == choiceKorPronunciations.length),
+        assert(choices.length == choiceKorMeanings.length),
         assert(correctChoiceIndex >= 0 && correctChoiceIndex < choices.length);
 
   final QuizPromptMode mode;
@@ -31,6 +33,9 @@ class QuizChallengeQuestion {
 
   /// 한→일 모드에서만 사용. 선택지 아래 작은 글씨(한국어 발음). `null`이면 미표시.
   final List<String?> choiceKorPronunciations;
+
+  /// 한→일 모드에서만 사용. 오답 안내용 한국어 뜻(`kor`). 일→한은 `null`.
+  final List<String?> choiceKorMeanings;
 
   final int correctChoiceIndex;
   final String category;

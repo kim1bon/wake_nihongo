@@ -144,14 +144,34 @@ class QuizChallengeBody extends StatelessWidget {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
     final i = wrongPickIndex!;
-    if (i < 0 || i >= question.wrongPickQuotes.length) {
+    if (i < 0 || i >= question.choices.length) {
       return '틀렸습니다. 다시 선택해 주세요.';
     }
-    final quoted = question.wrongPickQuotes[i].trim();
-    if (quoted.isEmpty) {
-      return '틀렸습니다. 다시 선택해 주세요.';
+
+    switch (question.mode) {
+      case QuizPromptMode.jpToKor:
+        if (i >= question.wrongPickQuotes.length) {
+          return '틀렸습니다. 다시 선택해 주세요.';
+        }
+        final jp = question.wrongPickQuotes[i].trim();
+        final kor = question.choices[i].trim();
+        if (jp.isEmpty || kor.isEmpty) {
+          return '틀렸습니다. 다시 선택해 주세요.';
+        }
+        return '「$jp」의 뜻은 「$kor」입니다.';
+      case QuizPromptMode.korToJp:
+        final jp = question.wrongPickQuotes[i].trim();
+        if (jp.isEmpty) {
+          return '틀렸습니다. 다시 선택해 주세요.';
+        }
+        if (i < question.choiceKorMeanings.length) {
+          final meaning = question.choiceKorMeanings[i]?.trim();
+          if (meaning != null && meaning.isNotEmpty) {
+            return '$jp는 "$meaning" 입니다.';
+          }
+        }
+        return '틀렸습니다. 다시 선택해 주세요.';
     }
-    return '「$quoted」는(은) 정답이 아닙니다. 다시 선택해 주세요.';
   }
 
   /// 단일열 선택지(전체 너비) 기준 답안 버튼 한 칸의 세로 높이.

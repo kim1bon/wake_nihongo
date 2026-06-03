@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -29,6 +30,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
 
   late TimeOfDay _time;
   late Set<int> _weekdays;
+  late bool _repeatEnabled;
   late String _soundId;
   late bool _rescheduleEnabled;
   late int _rescheduleDelayMinutes;
@@ -42,6 +44,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     if (a != null) {
       _time = TimeOfDay(hour: a.hour, minute: a.minute);
       _weekdays = Set<int>.from(a.weekdays);
+      _repeatEnabled = a.weekdays.isNotEmpty;
       _soundId = AlarmSoundIds.isValid(a.soundId)
           ? a.soundId
           : AlarmSoundIds.defaultId;
@@ -51,6 +54,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     } else {
       _time = const TimeOfDay(hour: 7, minute: 0);
       _weekdays = {};
+      _repeatEnabled = false;
       _soundId = AlarmSoundIds.defaultId;
       _rescheduleEnabled = true;
       _rescheduleDelayMinutes = 5;
@@ -100,8 +104,17 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
     }
   }
 
+  Set<int> get _weekdaysToSave =>
+      _repeatEnabled ? Set<int>.from(_weekdays) : <int>{};
+
   Future<void> _save() async {
     if (_isSaving) return;
+    if (_repeatEnabled && _weekdays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('반복 알람을 켠 경우 요일을 하나 이상 선택해 주세요.')),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -123,7 +136,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
         await notifier.create(
           hour: _time.hour,
           minute: _time.minute,
-          weekdays: Set<int>.from(_weekdays),
+          weekdays: _weekdaysToSave,
           soundId: _soundId,
           rescheduleEnabled: _rescheduleEnabled,
           rescheduleDelayMinutes: _rescheduleDelayMinutes,
@@ -134,7 +147,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
           id: initial.id,
           hour: _time.hour,
           minute: _time.minute,
-          weekdays: Set<int>.from(_weekdays),
+          weekdays: _weekdaysToSave,
           soundId: _soundId,
           rescheduleEnabled: _rescheduleEnabled,
           rescheduleDelayMinutes: _rescheduleDelayMinutes,
@@ -177,6 +190,7 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
   }
 
   Future<bool> _shouldShowSoundModePopup() async {
+    if (!Platform.isIOS) return false;
     final prefs = await SharedPreferences.getInstance();
     final hideUntilMs = prefs.getInt(_soundModePopupHideUntilKey);
     if (hideUntilMs == null) return true;
@@ -421,45 +435,68 @@ class _AddAlarmScreenState extends ConsumerState<AddAlarmScreen> {
             },
           ),
           SizedBox(height: context.h(16)),
-          Text('반복 요일', style: Theme.of(context).textTheme.titleMedium),
-          SizedBox(height: context.h(8)),
-          Wrap(
-            spacing: context.w(8),
-            runSpacing: context.h(8),
-            children: [
-              FilterChip(
-                label: const Text('매일'),
-                selected: _everyDaySelected,
-                onSelected: (v) {
-                  setState(() {
-                    if (v) {
-                      _weekdays = Set<int>.from(AlarmWeekdays.all);
-                    } else {
-                      _weekdays.clear();
-                    }
-                  });
-                },
-              ),
-              ..._dayChips.map((e) {
-                final day = e.$1;
-                final label = e.$2;
-                final selected = _weekdays.contains(day);
-                return FilterChip(
-                  label: Text(label),
-                  selected: selected,
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              '반복 알람',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            subtitle: Text(
+              _repeatEnabled
+                  ? '선택한 요일마다 알람이 울립니다.'
+                  : '설정한 시간에 한 번만 울립니다.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppPalette.onSurfaceVariantTone,
+                  ),
+            ),
+            value: _repeatEnabled,
+            activeThumbColor: AppPalette.green,
+            onChanged: (v) {
+              setState(() => _repeatEnabled = v);
+            },
+          ),
+          if (_repeatEnabled) ...[
+            SizedBox(height: context.h(8)),
+            Text('반복 요일', style: Theme.of(context).textTheme.titleSmall),
+            SizedBox(height: context.h(8)),
+            Wrap(
+              spacing: context.w(8),
+              runSpacing: context.h(8),
+              children: [
+                FilterChip(
+                  label: const Text('매일'),
+                  selected: _everyDaySelected,
                   onSelected: (v) {
                     setState(() {
                       if (v) {
-                        _weekdays.add(day);
+                        _weekdays = Set<int>.from(AlarmWeekdays.all);
                       } else {
-                        _weekdays.remove(day);
+                        _weekdays.clear();
                       }
                     });
                   },
-                );
-              }),
-            ],
-          ),
+                ),
+                ..._dayChips.map((e) {
+                  final day = e.$1;
+                  final label = e.$2;
+                  final selected = _weekdays.contains(day);
+                  return FilterChip(
+                    label: Text(label),
+                    selected: selected,
+                    onSelected: (v) {
+                      setState(() {
+                        if (v) {
+                          _weekdays.add(day);
+                        } else {
+                          _weekdays.remove(day);
+                        }
+                      });
+                    },
+                  );
+                }),
+              ],
+            ),
+          ],
         ],
       ),
       bottomNavigationBar: SafeArea(

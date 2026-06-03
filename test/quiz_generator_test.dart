@@ -58,6 +58,7 @@ void main() {
         final kor = q.choices[i];
         final idx = int.parse(kor.substring(1));
         expect(q.wrongPickQuotes[i], 'w$idx');
+        expect(q.choiceKorMeanings[i], isNull);
       }
       expect(q.type, '단어');
       expect(q.category, 'A');
@@ -85,6 +86,7 @@ void main() {
       expect(q, isNotNull);
       expect(q!.choices.length, 4);
       expect(q.choiceKorPronunciations.length, 4);
+      expect(q.choiceKorMeanings.length, 4);
       expect(q.mode, QuizPromptMode.korToJp);
       expect(q.promptPrimary.startsWith('k'), isTrue);
       for (final c in q.choices) {
@@ -113,6 +115,7 @@ void main() {
       for (var i = 0; i < q!.choices.length; i++) {
         final idx = int.parse(q.choices[i].substring(1));
         expect(q.choiceKorPronunciations[i], '발음$idx');
+        expect(q.choiceKorMeanings[i], 'k$idx');
       }
     });
 

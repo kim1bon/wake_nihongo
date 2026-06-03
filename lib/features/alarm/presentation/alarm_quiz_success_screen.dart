@@ -55,13 +55,11 @@ class AlarmQuizSuccessScreen extends StatefulWidget {
   const AlarmQuizSuccessScreen({
     super.key,
     required this.onStopAlarm,
-    this.onViewAgain,
     this.backgroundAssetPath = 'assets/images/Tx_Background.png',
     this.messages,
   });
 
   final VoidCallback onStopAlarm;
-  final VoidCallback? onViewAgain;
 
   final String backgroundAssetPath;
   final List<CheerMessage>? messages;
@@ -163,20 +161,6 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
     await _cheerController.forward();
-  }
-
-  Future<void> _replayAnimations() async {
-    _buttonDelayTimer?.cancel();
-    _message = _pickRandomCheer(_random, _messages);
-    setState(() {});
-
-    _checkController.reset();
-    _titleController.reset();
-    _cheerController.reset();
-    _buttonController.reset();
-
-    widget.onViewAgain?.call();
-    await _runIntroAnimations();
   }
 
   @override
@@ -431,67 +415,47 @@ class _AlarmQuizSuccessScreenState extends State<AlarmQuizSuccessScreen>
     );
   }
 
-  /// 하단 고정 느낌: 알람 끄기 + 다시 보기
+  /// 하단 고정: 알람 끄기
   Widget _buildBottomButtonArea(bool isCompactDevice) {
-    // A/B 미세 튜닝: 0.0(기존) / 0.5(B안)로 텍스트 크기를 조절합니다.
     const textStepSp = 0.5;
     final primaryFontSize = context.sp(isCompactDevice ? 15.5 : 16.5) -
         context.sp(textStepSp);
-    final secondaryFontSize = context.sp(isCompactDevice ? 12.5 : 13.5) -
-        context.sp(textStepSp);
     return FadeTransition(
       opacity: _buttonFade,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FilledButton(
-            onPressed: widget.onStopAlarm,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.beigeSoft,
-              foregroundColor: AppPalette.navy,
-              padding: EdgeInsets.symmetric(
-                vertical: context.h(isCompactDevice ? 13 : 16),
-              ),
-              minimumSize: Size.fromHeight(context.h(isCompactDevice ? 46 : 52)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(context.r(14)),
-              ),
-              side: BorderSide(
-                color: context.wnColors.successPrimaryButtonBorder,
-              ),
-              elevation: 0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.notifications_off_outlined,
-                  size: context.r(isCompactDevice ? 19 : 21),
-                ),
-                SizedBox(width: context.w(isCompactDevice ? 8 : 10)),
-                Text(
-                  '알람 끄기',
-                  style: TextStyle(
-                    fontSize: primaryFontSize,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
+      child: FilledButton(
+        onPressed: widget.onStopAlarm,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppPalette.beigeSoft,
+          foregroundColor: AppPalette.navy,
+          padding: EdgeInsets.symmetric(
+            vertical: context.h(isCompactDevice ? 13 : 16),
           ),
-          TextButton(
-            onPressed: _replayAnimations,
-            child: Text(
-              '다시 보기',
+          minimumSize: Size.fromHeight(context.h(isCompactDevice ? 46 : 52)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(context.r(14)),
+          ),
+          side: BorderSide(
+            color: context.wnColors.successPrimaryButtonBorder,
+          ),
+          elevation: 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.notifications_off_outlined,
+              size: context.r(isCompactDevice ? 19 : 21),
+            ),
+            SizedBox(width: context.w(isCompactDevice ? 8 : 10)),
+            Text(
+              '알람 끄기',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.62),
-                fontSize: secondaryFontSize,
-                letterSpacing: 0.15,
+                fontSize: primaryFontSize,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

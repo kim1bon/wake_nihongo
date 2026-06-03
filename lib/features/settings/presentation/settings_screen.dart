@@ -10,6 +10,7 @@ import '../../auth/presentation/auth_providers.dart';
 import '../../quiz/domain/quiz_entry.dart';
 import '../../quiz/domain/quiz_prompt_mode.dart';
 import '../../quiz/presentation/quiz_providers.dart';
+import '../../quiz/presentation/remote_quiz_version_display_messages.dart';
 import 'alarm_quiz_question_count_notifier.dart';
 import 'quiz_alarm_categories_notifier.dart';
 import 'quiz_alarm_category_levels_notifier.dart';
@@ -1004,17 +1005,17 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.cloud_outlined),
-                  title: const Text('원격 quiz_version'),
+                  title: const Text('원격 퀴즈 버전'),
                   subtitle: remoteQuizVersionAsync.when(
                     loading: () => const Text('불러오는 중...'),
-                    error: (e, _) => Text('조회 실패: $e'),
+                    error: (e, _) => Text(remoteQuizVersionErrorMessage(e)),
                     data: (version) => Text(version),
                   ),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.storage_outlined),
-                  title: const Text('로컬 quiz_version'),
+                  title: const Text('로컬 퀴즈 버전'),
                   subtitle: localQuizVersionAsync.when(
                     loading: () => const Text('불러오는 중...'),
                     error: (e, _) => Text('조회 실패: $e'),
@@ -1033,7 +1034,10 @@ class SettingsScreen extends ConsumerWidget {
             ),
             child: remoteQuizVersionAsync.when(
               loading: () => const SizedBox.shrink(),
-              error: (_, _) => const SizedBox.shrink(),
+              error: (_, _) => Text(
+                '원격 버전을 확인할 수 없어 로컬 버전과 비교할 수 없습니다.',
+                style: panelDescStyle,
+              ),
               data: (remote) => localQuizVersionAsync.when(
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),

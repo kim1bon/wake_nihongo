@@ -183,6 +183,7 @@ class QuizGenerator {
 
     final wrongPickQuotes = <String>[];
     final choiceKorPronunciations = <String?>[];
+    final choiceKorMeanings = <String?>[];
 
     for (final label in allLabels) {
       final entry = pickEntryForLabel(
@@ -196,10 +197,13 @@ class QuizGenerator {
       switch (mode) {
         case QuizPromptMode.jpToKor:
           choiceKorPronunciations.add(null);
+          choiceKorMeanings.add(null);
           break;
         case QuizPromptMode.korToJp:
           final p = entry.korPronunciation.trim();
           choiceKorPronunciations.add(p.isEmpty ? null : p);
+          final k = entry.kor.trim();
+          choiceKorMeanings.add(k.isEmpty ? null : k);
           break;
       }
     }
@@ -228,6 +232,7 @@ class QuizGenerator {
       choices: allLabels,
       wrongPickQuotes: wrongPickQuotes,
       choiceKorPronunciations: choiceKorPronunciations,
+      choiceKorMeanings: choiceKorMeanings,
       correctChoiceIndex: correctIndex,
       category: correctEntry.category.trim(),
       type: type,
